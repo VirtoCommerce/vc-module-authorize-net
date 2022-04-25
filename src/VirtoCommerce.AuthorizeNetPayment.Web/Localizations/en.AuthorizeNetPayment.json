@@ -1,0 +1,10 @@
+{
+    "settings": {
+        "AuthorizeNetPayment": {
+            "AuthorizeNetPaymentEnabled": {
+                "title": "AuthorizeNetPayment Enabled",
+                "description": "AuthorizeNetPayment Enabled setting"
+            }
+        }
+    }
+}
