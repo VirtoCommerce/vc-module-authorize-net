@@ -4,6 +4,6 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Services
 {
     public interface IAuthorizeNetCheckoutService
     {
-        string GetCheckoutFormContent(AuthorizeNetCheckoutContext context);
+        AuthorizeNetCheckoutFormResult GetCheckoutForm(AuthorizeNetCheckoutFormContext context);
     }
 }

@@ -11,10 +11,5 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
         /// AuthorizeNET API Transaction Key
         /// </summary>
         public string TxnKey { get; set; }
-
-        /// <summary>
-        /// AuthorizeNET key
-        /// </summary>
-        public string SHA2Hash { get; set; }
     }
 }

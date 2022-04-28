@@ -1,0 +1,99 @@
+<div id="authorizeNetForm">
+    <script type="text/javascript" src="{{acceptJsPath}}"></script>
+
+    <form id="paymentForm" action="{{formAction}}" method="POST" class="ng-pristine ng-valid">
+        <p></p>
+        <div style="float:left;width:250px;">
+            <label>Credit Card Number</label>
+            <div id="CreditCardNumber">
+                <input type="text" size="28" maxlength="28" name="cardNumber" id="cardNumber" value="">
+            </div>
+        </div>
+        <div style="float:left;width:50px;">
+            <label>Month</label>
+            <div id="CreditCardExpirationMonth">
+                <input type="text" size="5" maxlength="2" name="expMonth" id="expMonth" value="" placeholder="MM">
+            </div>
+        </div>
+        <div style="float:left;width:50px;">
+            <label>Year</label>
+            <div id="CreditCardExpirationYear">
+                <input type="text" size="5" maxlength="2" name="expYear" id="expYear" value="" placeholder="YY">
+            </div>
+        </div>
+        <div style="float:left;width:70px;">
+            <label>CCV</label>
+            <div id="CCV">
+                <input type="text" size="5" maxlength="5" name="cardCode" id="cardCode" value="">
+            </div>
+        </div>
+        <p></p>
+        <input type="hidden" name="orderId" id="orderId" value="{{orderId}}"/>
+        <input type="hidden" name="dataValue" id="dataValue" />
+        <input type="hidden" name="dataDescriptor" id="dataDescriptor" />
+        <div style="clear:both"></div>
+        <p><input type="submit" id="processPayment" class="submit" value="Pay with Authorize.NET"></p>
+    </form>
+
+    <script type="text/javascript">
+        function paymentFormUpdate(opaqueData) {
+            document.getElementById("dataDescriptor").value = opaqueData.dataDescriptor;
+            document.getElementById("dataValue").value = opaqueData.dataValue;
+
+            document.getElementById("cardNumber").value = "";
+            document.getElementById("expMonth").value = "";
+            document.getElementById("expYear").value = "";
+            document.getElementById("cardCode").value = "";
+
+            document.getElementById("paymentForm").submit();
+        }
+
+        function sendPaymentDataToAnet() {
+            var authData = {};
+                authData.clientKey = "{{clientKey}}";
+                authData.apiLoginID = "{{apiLogin}}";
+
+            var cardData = {};
+                cardData.cardNumber = document.getElementById("cardNumber").value;
+                cardData.month = document.getElementById("expMonth").value;
+                cardData.year = document.getElementById("expYear").value;
+                cardData.cardCode = document.getElementById("cardCode").value;
+
+            var secureData = {};
+                secureData.authData = authData;
+                secureData.cardData = cardData;
+
+            Accept.dispatchData(secureData, responseHandler);
+
+            function responseHandler(response) {
+                if (response.messages.resultCode === "Error") {
+                    var paymentButton = document.getElementById('processPayment');
+                    paymentButton.className = paymentButton.className.replace("disabled", "");
+
+                    var i = 0;
+                    while (i < response.messages.message.length) {
+                        console.log(
+                            response.messages.message[i].code + ": " +
+                            response.messages.message[i].text
+                        );
+                        i = i + 1;
+                    }
+                } else {
+                    paymentFormUpdate(response.opaqueData);
+                }
+            }
+        }
+
+        var form = document.getElementById("paymentForm");
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            var paymentButton = document.getElementById('processPayment');
+            paymentButton.className += " disabled";
+
+            sendPaymentDataToAnet();
+        });
+
+    </script>
+
+</div>
