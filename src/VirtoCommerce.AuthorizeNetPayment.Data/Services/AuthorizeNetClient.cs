@@ -129,7 +129,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 : AuthorizeNet.Environment.SANDBOX;
         }
 
-        private TransactionResponse GetTransactionResponse(string responseCode)
+        private static TransactionResponse GetTransactionResponse(string responseCode)
         {
             var contains = _transactionResponseMap.TryGetValue(responseCode, out var transactionResponse);
             return contains ? transactionResponse : TransactionResponse.UnknownResponse;

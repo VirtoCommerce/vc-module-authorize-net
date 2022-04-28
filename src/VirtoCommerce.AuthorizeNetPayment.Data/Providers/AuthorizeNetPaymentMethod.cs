@@ -209,17 +209,17 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
 
         public override CapturePaymentRequestResult CaptureProcessPayment(CapturePaymentRequest context)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public override RefundPaymentRequestResult RefundProcessPayment(RefundPaymentRequest context)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public override VoidPaymentRequestResult VoidProcessPayment(VoidPaymentRequest request)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
     }
 }
