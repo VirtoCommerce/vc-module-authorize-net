@@ -1,4 +1,4 @@
-﻿namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
+namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
 {
     public enum TransactionResponse
     {
@@ -6,7 +6,5 @@
         Declined,
         Error,
         HeldForReview,
-
-        UnknownResponse
     }
 }

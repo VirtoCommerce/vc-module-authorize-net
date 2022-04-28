@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Specialized;
-using System.Linq;
 using Microsoft.Extensions.Options;
 using VirtoCommerce.AuthorizeNetPayment.Core;
 using VirtoCommerce.AuthorizeNetPayment.Core.Models;
 using VirtoCommerce.AuthorizeNetPayment.Core.Services;
+using VirtoCommerce.AuthorizeNetPayment.Data.Extensions;
 using VirtoCommerce.OrdersModule.Core.Model;
 using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.PaymentModule.Model.Requests;
@@ -14,9 +14,6 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
 {
     public class AuthorizeNetPaymentMethod : PaymentMethod
     {
-        private readonly string _dataDescriptorParamName = "dataDescriptor";
-        private readonly string _dataValueParamName = "dataValue";
-
         private readonly IAuthorizeNetClient _authorizeNetClient;
         private readonly IAuthorizeNetCheckoutService _authorizeNetCheckoutService;
         private readonly AuthorizeNetPaymentMethodOptions _options;
@@ -94,7 +91,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                 HtmlForm = formContentResult.FormContent,
             };
 
-            var payment = (PaymentIn)request.Payment;
+            var payment = request.GetPayment();
             payment.PaymentStatus = PaymentStatus.Pending;
 
             return result;
@@ -102,24 +99,19 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
 
         public override PostProcessPaymentRequestResult PostProcessPayment(PostProcessPaymentRequest request)
         {
-            var result = new PostProcessPaymentRequestResult();
+            var dataDescriptor = request.Parameters.Get(ModuleConstants.DataDescriptorParamName);
+            var dataValue = request.Parameters.Get(ModuleConstants.DataValueParamName);
 
-            var dataDescriptor = request.Parameters?.Get(_dataDescriptorParamName);
-            if (dataDescriptor == null)
+            if (dataDescriptor == null || dataValue == null)
             {
-                result.ErrorMessage = "No Authorize.NET data descripor present";
-                return result;
+                return new PostProcessPaymentRequestResult
+                {
+                    ErrorMessage = "No valid Authorize.NET response present.",
+                };
             }
 
-            var dataValue = request.Parameters?.Get(_dataValueParamName);
-            if (dataValue == null)
-            {
-                result.ErrorMessage = "No Authorize.NET Payment Nonce present";
-                return result;
-            }
-
-            var payment = (PaymentIn)request.Payment;
-            var order = (CustomerOrder)request.Order;
+            var payment = request.GetPayment();
+            var order = request.GetOrder();
 
             var transactionRequest = new AuthorizeNetAccessTransactionRequest
             {
@@ -135,66 +127,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             };
 
             var transactionResult = _authorizeNetClient.CreateTransactionRequest(transactionRequest);
-
-            var transactionMessage = transactionResult.TransactionMessages.FirstOrDefault();
-
-            switch (transactionResult.TransactionResponse)
-            {
-                case TransactionResponse.Approved:
-                    result.NewPaymentStatus = payment.PaymentStatus = PaymentStatus.Paid;
-                    payment.IsApproved = true;
-                    payment.CapturedDate = DateTime.UtcNow;
-                    payment.Comment = $"Paid successfully. Transaction Info {transactionResult.TransactionId}{Environment.NewLine}";
-                    payment.Transactions.Add(new PaymentGatewayTransaction
-                    {
-                        IsProcessed = true,
-                        ProcessedDate = DateTime.UtcNow,
-                        Note = $"Transaction ID: {transactionResult.TransactionId}",
-                        ResponseCode = transactionMessage?.Code,
-                        ResponseData = transactionMessage?.Description,
-                        CurrencyCode = payment.Currency,
-                        Amount = payment.Sum,
-                    });
-
-                    result.IsSuccess = true;
-                    result.OrderId = order.Id;
-                    result.OuterId = payment.OuterId = transactionResult.TransactionId;
-                    payment.AuthorizedDate = DateTime.UtcNow;
-
-                    break;
-                case TransactionResponse.Declined:
-                    if (payment.PaymentStatus != PaymentStatus.Paid)
-                    {
-                        result.IsSuccess = false;
-
-                        payment.Status = PaymentStatus.Declined.ToString();
-
-                        var message = $"Your transaction was declined - {transactionMessage?.Description} ({transactionMessage?.Code})";
-                        payment.ProcessPaymentResult = new ProcessPaymentRequestResult
-                        {
-                            ErrorMessage = message,
-                        };
-                        payment.Comment = $"{message}{Environment.NewLine}";
-                    }
-
-                    break;
-                default:
-                    if (payment.PaymentStatus != PaymentStatus.Paid)
-                    {
-                        result.IsSuccess = false;
-
-                        payment.Status = PaymentStatus.Error.ToString();
-
-                        var message = $"There was an error processing your transaction - {transactionMessage?.Description} ({transactionMessage?.Code})";
-                        payment.ProcessPaymentResult = new ProcessPaymentRequestResult
-                        {
-                            ErrorMessage = message,
-                        };
-                        payment.Comment = $"{message}{Environment.NewLine}";
-                    }
-
-                    break;
-            }
+            var result = ProcessResult(transactionResult, payment, order);
 
             return result;
         }
@@ -220,6 +153,91 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
         public override VoidPaymentRequestResult VoidProcessPayment(VoidPaymentRequest request)
         {
             throw new NotImplementedException();
+        }
+
+        private static PostProcessPaymentRequestResult ProcessResult(AuthorizeNetAccessTransactionResult transactionResult, PaymentIn payment, CustomerOrder order)
+        {
+            return transactionResult.TransactionResponse switch
+            {
+                TransactionResponse.Approved => ProcessApprovedResult(transactionResult, payment, order),
+                TransactionResponse.Declined => ProcessDeclinedResult(transactionResult, payment),
+                TransactionResponse.Error => ProcessErrorResult(transactionResult, payment),
+                TransactionResponse.HeldForReview => ProcessHeldResult(transactionResult, payment),
+                _ => new PostProcessPaymentRequestResult { ErrorMessage = "Unknown transaction status." },
+            };
+        }
+
+        private static PostProcessPaymentRequestResult ProcessApprovedResult(AuthorizeNetAccessTransactionResult transactionResult, PaymentIn payment, CustomerOrder order)
+        {
+            var result = new PostProcessPaymentRequestResult();
+
+            var transactionMessage = transactionResult.TransactionMessage;
+
+            result.NewPaymentStatus = payment.PaymentStatus = PaymentStatus.Paid;
+            payment.IsApproved = true;
+            payment.CapturedDate = DateTime.UtcNow;
+            payment.Comment = $"Paid successfully. Transaction Info {transactionResult.TransactionId}{Environment.NewLine}";
+
+            var paymentTransaction = new PaymentGatewayTransaction
+            {
+                IsProcessed = true,
+                ProcessedDate = DateTime.UtcNow,
+                CurrencyCode = payment.Currency,
+                Amount = payment.Sum,
+                Note = $"Transaction ID: {transactionResult.TransactionId}",
+                ResponseCode = transactionMessage.Code,
+                ResponseData = transactionMessage.Description,
+            };
+
+            payment.Transactions.Add(paymentTransaction);
+
+            result.IsSuccess = true;
+            result.OrderId = order.Id;
+            result.OuterId = payment.OuterId = transactionResult.TransactionId;
+            payment.AuthorizedDate = DateTime.UtcNow;
+
+            return result;
+        }
+
+        private static PostProcessPaymentRequestResult ProcessDeclinedResult(AuthorizeNetAccessTransactionResult transactionResult, PaymentIn payment)
+        {
+            var transactionMessage = transactionResult.TransactionMessage;
+
+            payment.Status = PaymentStatus.Declined.ToString();
+            payment.ProcessPaymentResult = new ProcessPaymentRequestResult
+            {
+                ErrorMessage = $"Your transaction was declined: {transactionMessage.Description} ({transactionMessage.Code})",
+            };
+            payment.Comment = $"{payment.ProcessPaymentResult.ErrorMessage}{Environment.NewLine}";
+
+            return new PostProcessPaymentRequestResult();
+        }
+
+        private static PostProcessPaymentRequestResult ProcessErrorResult(AuthorizeNetAccessTransactionResult transactionResult, PaymentIn payment)
+        {
+            var transactionMessage = transactionResult.TransactionMessage;
+
+            payment.Status = PaymentStatus.Error.ToString();
+            payment.ProcessPaymentResult = new ProcessPaymentRequestResult
+            {
+                ErrorMessage = $"There was an error processing your transaction: {transactionMessage.Description} ({transactionMessage.Code})",
+            };
+            payment.Comment = $"{payment.ProcessPaymentResult.ErrorMessage}{Environment.NewLine}";
+
+            return new PostProcessPaymentRequestResult();
+        }
+
+        private static PostProcessPaymentRequestResult ProcessHeldResult(AuthorizeNetAccessTransactionResult transactionResult, PaymentIn payment)
+        {
+            var transactionMessage = transactionResult.TransactionMessage;
+
+            payment.ProcessPaymentResult = new ProcessPaymentRequestResult
+            {
+                ErrorMessage = $"Your transaction was held for review: {transactionMessage.Description} ({transactionMessage.Code})",
+            };
+            payment.Comment = $"{payment.ProcessPaymentResult.ErrorMessage}{Environment.NewLine}";
+
+            return new PostProcessPaymentRequestResult();
         }
     }
 }

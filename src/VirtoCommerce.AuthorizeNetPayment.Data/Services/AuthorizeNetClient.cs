@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AuthorizeNet.Api.Contracts.V1;
@@ -11,14 +10,6 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
 {
     public class AuthorizeNetClient : IAuthorizeNetClient
     {
-        private static IDictionary<string, TransactionResponse> _transactionResponseMap = new Dictionary<string, TransactionResponse>
-        {
-            { "1", TransactionResponse.Approved },
-            { "2", TransactionResponse.Declined },
-            { "3", TransactionResponse.Error },
-            { "4", TransactionResponse.HeldForReview },
-        };
-
         public AuthorizeNetAccessTokenResult GetAccessToken(AuthorizeNetAccessTokenRequest request)
         {
             SetApiMode(request.IsLiveMode);
@@ -40,7 +31,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
 
             var tokenResult = new AuthorizeNetAccessTokenResult
             {
-                IsSuccess = response.messages.resultCode == messageTypeEnum.Ok,
+                IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
                 ClientKey = response.publicClientKey,
             };
 
@@ -99,9 +90,8 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
 
             return new AuthorizeNetAccessTransactionResult
             {
-                IsSuccess = response.messages.resultCode == messageTypeEnum.Ok,
-
-                TransactionResponse = GetTransactionResponse(response.transactionResponse.responseCode),
+                IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
+                TransactionResponseCode = response.transactionResponse.responseCode,
                 TransactionId = response.transactionResponse?.transId,
                 TransactionMessages = response.transactionResponse?.messages?.Select(x => new AuthorizeNetAccessTransactionMessage
                 {
@@ -122,6 +112,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
             return Task.FromResult(result);
         }
 
+
         private static void SetApiMode(bool isLiveMode)
         {
             ApiOperationBase<ANetApiRequest, ANetApiResponse>.RunEnvironment = isLiveMode
@@ -129,10 +120,9 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 : AuthorizeNet.Environment.SANDBOX;
         }
 
-        private static TransactionResponse GetTransactionResponse(string responseCode)
+        private static bool IsSuccessfulApiResponse(messageTypeEnum messageType)
         {
-            var contains = _transactionResponseMap.TryGetValue(responseCode, out var transactionResponse);
-            return contains ? transactionResponse : TransactionResponse.UnknownResponse;
+            return messageType == messageTypeEnum.Ok;
         }
     }
 }

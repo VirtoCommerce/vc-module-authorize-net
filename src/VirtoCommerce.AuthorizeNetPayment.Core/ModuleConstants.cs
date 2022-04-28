@@ -8,6 +8,9 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core
         public const string Test = "test";
         public const string Real = "real";
 
+        public const string DataDescriptorParamName = "dataDescriptor";
+        public const string DataValueParamName = "dataValue";
+
         public static class Settings
         {
             public static class General
