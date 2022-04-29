@@ -5,25 +5,18 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
 {
     public class AuthorizeNetAccessTransactionResult : AuthorizeNetBaseResult
     {
-        private static IDictionary<string, TransactionResponse> _transactionResponseMap = new Dictionary<string, TransactionResponse>
-        {
-            { "1", TransactionResponse.Approved },
-            { "2", TransactionResponse.Declined },
-            { "3", TransactionResponse.Error },
-            { "4", TransactionResponse.HeldForReview },
-        };
-
         public string TransactionId { get; set; }
 
         public string TransactionResponseCode { get; set; }
 
-        public TransactionResponse TransactionResponse
+        public TransactionResponse TransactionResponse => TransactionResponseCode switch
         {
-            get
-            {
-                return _transactionResponseMap[TransactionResponseCode];
-            }
-        }
+            "1" => TransactionResponse.Approved,
+            "2" => TransactionResponse.Declined,
+            "3" => TransactionResponse.Error,
+            "4" => TransactionResponse.HeldForReview,
+            _ => TransactionResponse.UnknownResponse
+        };
 
         public IList<AuthorizeNetAccessTransactionMessage> TransactionMessages { get; set; } = new List<AuthorizeNetAccessTransactionMessage>();
 

@@ -6,5 +6,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
         Declined,
         Error,
         HeldForReview,
+
+        UnknownResponse
     }
 }
