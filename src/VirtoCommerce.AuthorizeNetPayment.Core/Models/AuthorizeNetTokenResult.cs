@@ -1,6 +1,6 @@
 namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
 {
-    public class AuthorizeNetAccessTokenResult : AuthorizeNetBaseResult
+    public class AuthorizeNetTokenResult : AuthorizeNetBaseResult
     {
         public string ClientKey { get; set; }
     }

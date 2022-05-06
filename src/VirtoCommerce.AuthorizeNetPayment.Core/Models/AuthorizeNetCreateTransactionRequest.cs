@@ -1,6 +1,6 @@
 namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
 {
-    public class AuthorizeNetAccessTransactionRequest : AuthorizeNetBaseRequest
+    public class AuthorizeNetCreateTransactionRequest : AuthorizeNetBaseRequest
     {
         public decimal Amount { get; set; }
 
@@ -13,5 +13,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
         public string DataDescriptor { get; set; }
 
         public string DataValue { get; set; }
+
+        public string PaymentActionType { get; set; }
     }
 }

@@ -5,12 +5,28 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Services
 {
     public interface IAuthorizeNetClient
     {
-        AuthorizeNetAccessTokenResult GetAccessToken(AuthorizeNetAccessTokenRequest request);
+        AuthorizeNetTokenResult GetAccessToken(AuthorizeNetTokenRequest request);
 
-        Task<AuthorizeNetAccessTokenResult> GetAccessTokenAsync(AuthorizeNetAccessTokenRequest request);
+        Task<AuthorizeNetTokenResult> GetAccessTokenAsync(AuthorizeNetTokenRequest request);
 
-        AuthorizeNetAccessTransactionResult CreateTransactionRequest(AuthorizeNetAccessTransactionRequest request);
+        AuthorizeNetTransactionResult GetTransactionDetails(AuthorizeNetTransactionRequest request);
 
-        Task<AuthorizeNetAccessTransactionResult> CreateTransactionRequestAsync(AuthorizeNetAccessTransactionRequest request);
+        Task<AuthorizeNetTransactionResult> GetTransactionDetailsAsync(AuthorizeNetTransactionRequest request);
+
+        AuthorizeNetTransactionResult CreateTransaction(AuthorizeNetCreateTransactionRequest request);
+
+        Task<AuthorizeNetTransactionResult> CreateTransactionAsync(AuthorizeNetCreateTransactionRequest request);
+
+        AuthorizeNetTransactionResult CaptureTransaction(AuthorizeNetCaptureTransactionRequest request);
+
+        Task<AuthorizeNetTransactionResult> CaptureTransactionAsync(AuthorizeNetCaptureTransactionRequest request);
+
+        AuthorizeNetTransactionResult RefundTransaction(AuthorizeNetRefundTransactionRequest request);
+
+        Task<AuthorizeNetTransactionResult> RefundTransactionAsync(AuthorizeNetRefundTransactionRequest request);
+
+        AuthorizeNetTransactionResult VoidTransaction(AuthorizeNetVoidTransactionRequest request);
+
+        Task<AuthorizeNetTransactionResult> VoidTransactionAsync(AuthorizeNetVoidTransactionRequest request);
     }
 }

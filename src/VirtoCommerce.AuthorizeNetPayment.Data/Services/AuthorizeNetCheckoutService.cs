@@ -8,7 +8,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
 {
     public class AuthorizeNetCheckoutService : IAuthorizeNetCheckoutService
     {
-        public AuthorizeNetCheckoutFormResult GetCheckoutForm(AuthorizeNetCheckoutFormContext context)
+        public virtual AuthorizeNetCheckoutFormResult GetCheckoutForm(AuthorizeNetCheckoutFormContext context)
         {
             var assembly = Assembly.GetExecutingAssembly();
 
@@ -28,6 +28,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 clientKey = context.ClientKey,
                 apiLogin = context.ApiLogin,
                 orderId = context.OrderId,
+                userIp = context.UserIp,
             }));
 
             return new AuthorizeNetCheckoutFormResult

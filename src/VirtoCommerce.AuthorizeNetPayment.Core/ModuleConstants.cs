@@ -8,6 +8,9 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core
         public const string Test = "test";
         public const string Real = "real";
 
+        public const string Sale = "Sale";
+        public const string AuthCapture = "Authorization/Capture";
+
         public const string DataDescriptorParamName = "dataDescriptor";
         public const string DataValueParamName = "dataValue";
 
@@ -24,6 +27,15 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core
                     DefaultValue = Test,
                 };
 
+                public static readonly SettingDescriptor PaymentActionType = new SettingDescriptor
+                {
+                    Name = "VirtoCommerce.Payment.AuthorizeNetPayment.PaymentActionType",
+                    GroupName = "Payment|Authorize.Net Accept",
+                    ValueType = SettingValueType.ShortText,
+                    AllowedValues = new[] { Sale, AuthCapture, },
+                    DefaultValue = Sale,
+                };
+
                 public static readonly SettingDescriptor ProcessPaymentAction = new SettingDescriptor
                 {
                     Name = "VirtoCommerce.Payment.AuthorizeNetPayment.ProcessPaymentAction",
@@ -35,7 +47,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core
                 public static readonly SettingDescriptor AcceptJSTestPath = new SettingDescriptor
                 {
                     Name = "VirtoCommerce.Payment.AuthorizeNetPayment.AcceptJSTestPath",
-                    GroupName = "Payment|Authorize.Net Accept",
+                    GroupName = "Payment|Authorize.Net Accept JS",
                     ValueType = SettingValueType.ShortText,
                     DefaultValue = "https://jstest.authorize.net/v1/Accept.js"
                 };
@@ -43,7 +55,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core
                 public static readonly SettingDescriptor AcceptJSProdPath = new SettingDescriptor
                 {
                     Name = "VirtoCommerce.Payment.AuthorizeNetPayment.AcceptJSProdPath",
-                    GroupName = "Payment|Authorize.Net Accept",
+                    GroupName = "Payment|Authorize.Net Accept JS",
                     ValueType = SettingValueType.ShortText,
                     DefaultValue = "https://js.authorize.net/v1/Accept.js"
                 };
@@ -53,6 +65,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core
                     get
                     {
                         yield return Mode;
+                        yield return PaymentActionType;
                         yield return ProcessPaymentAction;
                         yield return AcceptJSTestPath;
                         yield return AcceptJSProdPath;

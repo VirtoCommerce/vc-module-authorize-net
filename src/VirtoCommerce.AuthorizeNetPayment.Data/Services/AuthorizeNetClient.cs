@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using AuthorizeNet.Api.Contracts.V1;
 using AuthorizeNet.Api.Controllers;
 using AuthorizeNet.Api.Controllers.Bases;
+using VirtoCommerce.AuthorizeNetPayment.Core;
 using VirtoCommerce.AuthorizeNetPayment.Core.Models;
 using VirtoCommerce.AuthorizeNetPayment.Core.Services;
 
@@ -10,7 +11,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
 {
     public class AuthorizeNetClient : IAuthorizeNetClient
     {
-        public AuthorizeNetAccessTokenResult GetAccessToken(AuthorizeNetAccessTokenRequest request)
+        public AuthorizeNetTokenResult GetAccessToken(AuthorizeNetTokenRequest request)
         {
             SetApiMode(request.IsLiveMode);
 
@@ -29,7 +30,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
 
             var response = controller.GetApiResponse();
 
-            var tokenResult = new AuthorizeNetAccessTokenResult
+            var tokenResult = new AuthorizeNetTokenResult
             {
                 IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
                 ClientKey = response.publicClientKey,
@@ -38,13 +39,60 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
             return tokenResult;
         }
 
-        public Task<AuthorizeNetAccessTokenResult> GetAccessTokenAsync(AuthorizeNetAccessTokenRequest request)
+        public Task<AuthorizeNetTokenResult> GetAccessTokenAsync(AuthorizeNetTokenRequest request)
         {
             var result = GetAccessToken(request);
             return Task.FromResult(result);
         }
 
-        public AuthorizeNetAccessTransactionResult CreateTransactionRequest(AuthorizeNetAccessTransactionRequest request)
+        public AuthorizeNetTransactionResult GetTransactionDetails(AuthorizeNetTransactionRequest request)
+        {
+            SetApiMode(request.IsLiveMode);
+
+            var merchantAuthentication = new merchantAuthenticationType
+            {
+                name = request.ApiLogin,
+                Item = request.TransactionKey,
+                ItemElementName = ItemChoiceType.transactionKey,
+            };
+
+            var transactionDetailsRequest = new getTransactionDetailsRequest { merchantAuthentication = merchantAuthentication };
+            transactionDetailsRequest.transId = request.TransactionId;
+
+            // instantiate the controller that will call the service
+            var controller = new getTransactionDetailsController(transactionDetailsRequest);
+            controller.Execute();
+
+            // get the response from the service (errors contained if any)
+            var response = controller.GetApiResponse();
+
+            var transactionStatus = response.transaction.transactionStatus;
+            var transactionType = response.transaction.transactionType;
+
+            var paymentData = response.transaction.payment.Item is creditCardMaskedType creditCardMaskedType
+                ? creditCardMaskedType.cardNumber[^4..]
+                : string.Empty;
+
+            var transactionResult = new AuthorizeNetTransactionResult
+            {
+                IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
+                TransactionId = response.transaction.transId,
+                TransactionResponseCode = response.transaction?.responseCode.ToString(),
+                TransactionStatus = response.transaction.transactionStatus,
+                TransactionType = response.transaction.transactionType,
+                PaymentData = paymentData,
+            };
+
+            return transactionResult;
+        }
+
+        public Task<AuthorizeNetTransactionResult> GetTransactionDetailsAsync(AuthorizeNetTransactionRequest request)
+        {
+            var result = GetTransactionDetails(request);
+            return Task.FromResult(result);
+        }
+
+        public AuthorizeNetTransactionResult CreateTransaction(AuthorizeNetCreateTransactionRequest request)
         {
             SetApiMode(request.IsLiveMode);
 
@@ -67,9 +115,13 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 Item = opaqueData
             };
 
+            var transactionType = request.PaymentActionType == ModuleConstants.Sale
+                ? transactionTypeEnum.authCaptureTransaction
+                : transactionTypeEnum.authOnlyTransaction;
+
             var transactionRequest = new transactionRequestType
             {
-                transactionType = transactionTypeEnum.authCaptureTransaction.ToString(), // charge the card
+                transactionType = transactionType.ToString(), // charge the card
                 amount = request.Amount,
                 currencyCode = request.CurrencyCode,
                 poNumber = request.OrderNumber,
@@ -88,17 +140,18 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
 
             var response = controller.GetApiResponse();
 
-            return new AuthorizeNetAccessTransactionResult
+            // move to private
+            return new AuthorizeNetTransactionResult
             {
                 IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
-                TransactionResponseCode = response.transactionResponse.responseCode,
+                TransactionResponseCode = response.transactionResponse?.responseCode,
                 TransactionId = response.transactionResponse?.transId,
-                TransactionMessages = response.transactionResponse?.messages?.Select(x => new AuthorizeNetAccessTransactionMessage
+                TransactionMessages = response.transactionResponse?.messages?.Select(x => new AuthorizeNetTransactionMessage
                 {
                     Code = x.code,
                     Description = x.description,
                 }).ToList(),
-                TransactionErrors = response.transactionResponse?.errors?.Select(x => new AuthorizeNetAccessTransactionMessage
+                TransactionErrors = response.transactionResponse?.errors?.Select(x => new AuthorizeNetTransactionMessage
                 {
                     Code = x.errorCode,
                     Description = x.errorText,
@@ -106,12 +159,187 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
             };
         }
 
-        public Task<AuthorizeNetAccessTransactionResult> CreateTransactionRequestAsync(AuthorizeNetAccessTransactionRequest request)
+        public Task<AuthorizeNetTransactionResult> CreateTransactionAsync(AuthorizeNetCreateTransactionRequest request)
         {
-            var result = CreateTransactionRequest(request);
+            var result = CreateTransaction(request);
             return Task.FromResult(result);
         }
 
+        public AuthorizeNetTransactionResult CaptureTransaction(AuthorizeNetCaptureTransactionRequest request)
+        {
+            SetApiMode(request.IsLiveMode);
+
+            var merchantAuthentication = new merchantAuthenticationType
+            {
+                name = request.ApiLogin,
+                Item = request.TransactionKey,
+                ItemElementName = ItemChoiceType.transactionKey,
+            };
+
+            var transactionRequest = new transactionRequestType
+            {
+                transactionType = transactionTypeEnum.priorAuthCaptureTransaction.ToString(), // capture prior only
+                amount = request.TransactionAmount,
+                refTransId = request.TransactionId,
+            };
+
+            var createTransactionRequest = new createTransactionRequest
+            {
+                merchantAuthentication = merchantAuthentication,
+                transactionRequest = transactionRequest
+            };
+
+            // instantiate the controller that will call the service
+            var controller = new createTransactionController(createTransactionRequest);
+            controller.Execute();
+
+            // get the response from the service (errors contained if any)
+            var response = controller.GetApiResponse();
+
+            // move to private
+            return new AuthorizeNetTransactionResult
+            {
+                IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
+                TransactionResponseCode = response.transactionResponse?.responseCode,
+                TransactionId = response.transactionResponse?.transId,
+                TransactionMessages = response.transactionResponse?.messages?.Select(x => new AuthorizeNetTransactionMessage
+                {
+                    Code = x.code,
+                    Description = x.description,
+                }).ToList(),
+                TransactionErrors = response.transactionResponse?.errors?.Select(x => new AuthorizeNetTransactionMessage
+                {
+                    Code = x.errorCode,
+                    Description = x.errorText,
+                }).ToList(),
+            };
+        }
+
+        public Task<AuthorizeNetTransactionResult> CaptureTransactionAsync(AuthorizeNetCaptureTransactionRequest request)
+        {
+            var result = CaptureTransaction(request);
+            return Task.FromResult(result);
+        }
+
+        public AuthorizeNetTransactionResult RefundTransaction(AuthorizeNetRefundTransactionRequest request)
+        {
+            SetApiMode(request.IsLiveMode);
+
+            var merchantAuthentication = new merchantAuthenticationType
+            {
+                name = request.ApiLogin,
+                Item = request.TransactionKey,
+                ItemElementName = ItemChoiceType.transactionKey,
+            };
+
+            var creditCard = new creditCardType
+            {
+                cardNumber = request.PaymentData,
+                expirationDate = "XXXX"
+            };
+
+            //standard api call to retrieve response
+            var paymentType = new paymentType { Item = creditCard };
+
+            var transactionRequest = new transactionRequestType
+            {
+                transactionType = transactionTypeEnum.refundTransaction.ToString(),
+                payment = paymentType,
+                amount = request.TransactionAmount,
+                refTransId = request.TransactionId,
+            };
+
+            var refundTransactionRequest = new createTransactionRequest
+            {
+                merchantAuthentication = merchantAuthentication,
+                transactionRequest = transactionRequest
+            };
+
+            // instantiate the controller that will call the service
+            var controller = new createTransactionController(refundTransactionRequest);
+            controller.Execute();
+
+            // get the response from the service (errors contained if any)
+            var response = controller.GetApiResponse();
+
+            // move to private
+            return new AuthorizeNetTransactionResult
+            {
+                IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
+                TransactionResponseCode = response.transactionResponse?.responseCode,
+                TransactionId = response.transactionResponse?.transId,
+                TransactionMessages = response.transactionResponse?.messages?.Select(x => new AuthorizeNetTransactionMessage
+                {
+                    Code = x.code,
+                    Description = x.description,
+                }).ToList(),
+                TransactionErrors = response.transactionResponse?.errors?.Select(x => new AuthorizeNetTransactionMessage
+                {
+                    Code = x.errorCode,
+                    Description = x.errorText,
+                }).ToList(),
+            };
+        }
+
+        public Task<AuthorizeNetTransactionResult> RefundTransactionAsync(AuthorizeNetRefundTransactionRequest request)
+        {
+            var result = RefundTransaction(request);
+            return Task.FromResult(result);
+        }
+
+        public AuthorizeNetTransactionResult VoidTransaction(AuthorizeNetVoidTransactionRequest request)
+        {
+            SetApiMode(request.IsLiveMode);
+
+            var merchantAuthentication = new merchantAuthenticationType
+            {
+                name = request.ApiLogin,
+                Item = request.TransactionKey,
+                ItemElementName = ItemChoiceType.transactionKey,
+            };
+
+            var transactionRequest = new transactionRequestType
+            {
+                transactionType = transactionTypeEnum.voidTransaction.ToString(),
+                refTransId = request.TransactionId,
+            };
+
+            var voidTransactionRequest = new createTransactionRequest
+            {
+                merchantAuthentication = merchantAuthentication,
+                transactionRequest = transactionRequest
+            };
+
+            // instantiate the controller that will call the service
+            var controller = new createTransactionController(voidTransactionRequest);
+            controller.Execute();
+
+            // get the response from the service (errors contained if any)
+            var response = controller.GetApiResponse();
+
+            return new AuthorizeNetTransactionResult
+            {
+                IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
+                TransactionResponseCode = response.transactionResponse?.responseCode,
+                TransactionId = response.transactionResponse?.transId,
+                TransactionMessages = response.transactionResponse?.messages?.Select(x => new AuthorizeNetTransactionMessage
+                {
+                    Code = x.code,
+                    Description = x.description,
+                }).ToList(),
+                TransactionErrors = response.transactionResponse?.errors?.Select(x => new AuthorizeNetTransactionMessage
+                {
+                    Code = x.errorCode,
+                    Description = x.errorText,
+                }).ToList(),
+            };
+        }
+
+        public Task<AuthorizeNetTransactionResult> VoidTransactionAsync(AuthorizeNetVoidTransactionRequest request)
+        {
+            var result = VoidTransaction(request);
+            return Task.FromResult(result);
+        }
 
         private static void SetApiMode(bool isLiveMode)
         {

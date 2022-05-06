@@ -33,15 +33,16 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
 
         public override PaymentMethodType PaymentMethodType => PaymentMethodType.PreparedForm;
 
-        public string ApiLogin => _options.ApiLogin;
+        private string ApiLogin => _options.ApiLogin;
 
-        public string TransactionKey => _options.TxnKey;
+        private string TransactionKey => _options.TxnKey;
 
         private bool IsLiveMode
         {
             get
             {
-                var mode = Settings.GetSettingValue(ModuleConstants.Settings.General.Mode.Name, ModuleConstants.Settings.General.Mode.DefaultValue.ToString());
+                var mode = Settings.GetSettingValue(ModuleConstants.Settings.General.Mode.Name,
+                    ModuleConstants.Settings.General.Mode.DefaultValue.ToString());
                 return mode != ModuleConstants.Test;
             }
         }
@@ -51,12 +52,17 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             get
             {
                 var result = IsLiveMode
-                    ? Settings.GetSettingValue(ModuleConstants.Settings.General.AcceptJSProdPath.Name, ModuleConstants.Settings.General.AcceptJSProdPath.DefaultValue.ToString())
-                    : Settings.GetSettingValue(ModuleConstants.Settings.General.AcceptJSTestPath.Name, ModuleConstants.Settings.General.AcceptJSTestPath.DefaultValue.ToString());
+                    ? Settings.GetSettingValue(ModuleConstants.Settings.General.AcceptJSProdPath.Name,
+                        ModuleConstants.Settings.General.AcceptJSProdPath.DefaultValue.ToString())
+                    : Settings.GetSettingValue(ModuleConstants.Settings.General.AcceptJSTestPath.Name,
+                        ModuleConstants.Settings.General.AcceptJSTestPath.DefaultValue.ToString());
 
                 return result;
             }
         }
+
+        private string PaymentActionType => Settings.GetSettingValue(ModuleConstants.Settings.General.PaymentActionType.Name,
+            ModuleConstants.Settings.General.PaymentActionType.DefaultValue.ToString());
 
         private string ProcessPaymentAction => Settings.GetSettingValue(ModuleConstants.Settings.General.ProcessPaymentAction.Name,
             ModuleConstants.Settings.General.ProcessPaymentAction.DefaultValue.ToString());
@@ -64,7 +70,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
 
         public override ProcessPaymentRequestResult ProcessPayment(ProcessPaymentRequest request)
         {
-            var tokenRequest = new AuthorizeNetAccessTokenRequest
+            var tokenRequest = new AuthorizeNetTokenRequest
             {
                 IsLiveMode = IsLiveMode,
                 ApiLogin = ApiLogin,
@@ -73,6 +79,8 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
 
             var clientKeyResult = _authorizeNetClient.GetAccessToken(tokenRequest);
 
+            var userIp = request.Parameters != null ? request.Parameters["True-Client-IP"] : string.Empty;
+
             var formContext = new AuthorizeNetCheckoutFormContext
             {
                 ClientKey = clientKeyResult.ClientKey,
@@ -80,6 +88,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                 FormAction = ProcessPaymentAction,
                 AcceptJsPath = AcceptJsPath,
                 OrderId = request.OrderId,
+                UserIp = userIp,
             };
 
             var formContentResult = _authorizeNetCheckoutService.GetCheckoutForm(formContext);
@@ -93,6 +102,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
 
             var payment = request.GetPayment();
             payment.PaymentStatus = PaymentStatus.Pending;
+            payment.Status = payment.PaymentStatus.ToString();
 
             return result;
         }
@@ -113,11 +123,12 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             var payment = request.GetPayment();
             var order = request.GetOrder();
 
-            var transactionRequest = new AuthorizeNetAccessTransactionRequest
+            var transactionRequest = new AuthorizeNetCreateTransactionRequest
             {
                 IsLiveMode = IsLiveMode,
                 ApiLogin = ApiLogin,
                 TransactionKey = TransactionKey,
+                PaymentActionType = PaymentActionType,
                 DataDescriptor = dataDescriptor,
                 DataValue = dataValue,
                 Amount = payment.Sum,
@@ -126,8 +137,8 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                 OrderNumber = order.Number,
             };
 
-            var transactionResult = _authorizeNetClient.CreateTransactionRequest(transactionRequest);
-            var result = ProcessResult(transactionResult, payment, order);
+            var transactionResult = _authorizeNetClient.CreateTransaction(transactionRequest);
+            var result = ProcessCreateTransactionResult(transactionResult, payment, order);
 
             return result;
         }
@@ -142,54 +153,191 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
 
         public override CapturePaymentRequestResult CaptureProcessPayment(CapturePaymentRequest context)
         {
-            throw new NotImplementedException();
+            var payment = context.GetPayment();
+
+            var transactionRequest = new AuthorizeNetCaptureTransactionRequest
+            {
+                IsLiveMode = IsLiveMode,
+                ApiLogin = ApiLogin,
+                TransactionKey = TransactionKey,
+                TransactionAmount = payment.Sum,
+                TransactionId = payment.OuterId,
+            };
+
+            var captureResult = _authorizeNetClient.CaptureTransaction(transactionRequest);
+
+            var result = new CapturePaymentRequestResult();
+
+            if (captureResult.TransactionResponse == TransactionResponse.Approved)
+            {
+                result.IsSuccess = true;
+                result.NewPaymentStatus = payment.PaymentStatus = PaymentStatus.Paid;
+                payment.Status = payment.PaymentStatus.ToString();
+                payment.IsApproved = true;
+                payment.CapturedDate = DateTime.UtcNow;
+            }
+            else
+            {
+                throw new InvalidOperationException($"{captureResult.TransactionResponse} ({captureResult.TransactionMessage.Code}:{captureResult.TransactionMessage.Description})");
+            }
+
+            return result;
         }
 
-        public override RefundPaymentRequestResult RefundProcessPayment(RefundPaymentRequest context)
+        public override RefundPaymentRequestResult RefundProcessPayment(RefundPaymentRequest request)
         {
-            throw new NotImplementedException();
+            var payment = request.GetPayment();
+
+            if (payment.IsApproved && payment.PaymentStatus != PaymentStatus.Paid)
+            {
+                throw new InvalidOperationException("Only settled payments can be refunded");
+            }
+
+            if (string.IsNullOrEmpty(payment.OuterId))
+            {
+                throw new InvalidOperationException("Transaction ID is empty.");
+            }
+
+            var transactionDetailsRequest = new AuthorizeNetTransactionRequest
+            {
+                IsLiveMode = IsLiveMode,
+                ApiLogin = ApiLogin,
+                TransactionKey = TransactionKey,
+                TransactionId = payment.OuterId,
+            };
+
+            var transactionDetails = _authorizeNetClient.GetTransactionDetails(transactionDetailsRequest);
+
+            // test on null or invalid transaction id
+            var result = new RefundPaymentRequestResult();
+
+            if (transactionDetails.IsSettled)
+            {
+                var transactionRequest = new AuthorizeNetRefundTransactionRequest
+                {
+                    IsLiveMode = IsLiveMode,
+                    ApiLogin = ApiLogin,
+                    TransactionKey = TransactionKey,
+                    TransactionId = payment.OuterId,
+                    TransactionAmount = payment.Sum,
+                    PaymentData = transactionDetails.PaymentData,
+                };
+
+                var refundTransactionResult = _authorizeNetClient.RefundTransaction(transactionRequest);
+
+                if (refundTransactionResult.TransactionResponse == TransactionResponse.Approved)
+                {
+                    result.NewPaymentStatus = payment.PaymentStatus = PaymentStatus.Refunded;
+                    payment.Status = payment.PaymentStatus.ToString();
+                    payment.VoidedDate = DateTime.UtcNow;
+                }
+                else
+                {
+                    result.ErrorMessage = refundTransactionResult.TransactionMessage?.Description;
+                }
+            }
+            else
+            {
+                var order = request.GetOrder();
+                var voidRequest = new VoidPaymentRequest
+                {
+                    PaymentId = payment.Id,
+                    Payment = payment,
+                    OrderId = order.Id,
+                    Order = order,
+                };
+
+                var voidReult = VoidProcessPayment(voidRequest);
+
+                result.IsSuccess = voidReult.IsSuccess;
+                result.NewPaymentStatus = voidReult.NewPaymentStatus;
+                result.ErrorMessage = voidReult.ErrorMessage;
+            }
+
+            return result;
         }
 
         public override VoidPaymentRequestResult VoidProcessPayment(VoidPaymentRequest request)
         {
-            throw new NotImplementedException();
-        }
+            var payment = request.GetPayment();
 
-        private static PostProcessPaymentRequestResult ProcessResult(AuthorizeNetAccessTransactionResult transactionResult, PaymentIn payment, CustomerOrder order)
-        {
-            return transactionResult.TransactionResponse switch
+            if (payment.PaymentStatus != PaymentStatus.Authorized || payment.PaymentStatus != PaymentStatus.Paid)
             {
-                TransactionResponse.Approved => ProcessApprovedResult(transactionResult, payment, order),
-                TransactionResponse.Declined => ProcessDeclinedResult(transactionResult, payment),
-                TransactionResponse.Error => ProcessErrorResult(transactionResult, payment),
-                TransactionResponse.HeldForReview => ProcessHeldResult(transactionResult, payment),
-                _ => new PostProcessPaymentRequestResult { ErrorMessage = "Unknown transaction status." },
+                throw new InvalidOperationException("Only authorized payments can be voided");
+            }
+
+            var transactionRequest = new AuthorizeNetVoidTransactionRequest
+            {
+                IsLiveMode = IsLiveMode,
+                ApiLogin = ApiLogin,
+                TransactionKey = TransactionKey,
+                TransactionId = payment.OuterId,
             };
+
+            var voidTransactionResult = _authorizeNetClient.VoidTransaction(transactionRequest);
+
+            var result = new VoidPaymentRequestResult();
+
+            if (voidTransactionResult.TransactionResponse == TransactionResponse.Approved)
+            {
+                result.IsSuccess = true;
+                result.NewPaymentStatus = payment.PaymentStatus = PaymentStatus.Voided;
+
+                payment.IsCancelled = true;
+                payment.Status = PaymentStatus.Voided.ToString();
+                payment.VoidedDate = payment.CancelledDate = DateTime.UtcNow;
+            }
+            else
+            {
+                result.ErrorMessage = voidTransactionResult.TransactionMessage?.Description;
+            }
+
+            return result;
         }
 
-        private static PostProcessPaymentRequestResult ProcessApprovedResult(AuthorizeNetAccessTransactionResult transactionResult, PaymentIn payment, CustomerOrder order)
+
+        private PostProcessPaymentRequestResult ProcessCreateTransactionResult(AuthorizeNetTransactionResult transactionResult, PaymentIn payment, CustomerOrder order) => transactionResult.TransactionResponse switch
+        {
+            TransactionResponse.Approved => ProcessApprovedResult(transactionResult, payment, order),
+            TransactionResponse.Declined => ProcessDeclinedResult(transactionResult, payment),
+            TransactionResponse.Error => ProcessErrorResult(transactionResult, payment),
+            TransactionResponse.HeldForReview => ProcessHeldResult(transactionResult, payment),
+            _ => new PostProcessPaymentRequestResult { ErrorMessage = "Unknown transaction status." },
+        };
+
+        private PostProcessPaymentRequestResult ProcessApprovedResult(AuthorizeNetTransactionResult transactionResult, PaymentIn payment, CustomerOrder order)
         {
             var result = new PostProcessPaymentRequestResult();
 
             var transactionMessage = transactionResult.TransactionMessage;
 
-            result.NewPaymentStatus = payment.PaymentStatus = PaymentStatus.Paid;
-            payment.IsApproved = true;
-            payment.CapturedDate = DateTime.UtcNow;
-            payment.Comment = $"Paid successfully. Transaction Info {transactionResult.TransactionId}{Environment.NewLine}";
-
-            var paymentTransaction = new PaymentGatewayTransaction
+            if (PaymentActionType == ModuleConstants.Sale)
             {
-                IsProcessed = true,
-                ProcessedDate = DateTime.UtcNow,
-                CurrencyCode = payment.Currency,
-                Amount = payment.Sum,
-                Note = $"Transaction ID: {transactionResult.TransactionId}",
-                ResponseCode = transactionMessage.Code,
-                ResponseData = transactionMessage.Description,
-            };
+                result.NewPaymentStatus = payment.PaymentStatus = PaymentStatus.Paid;
+                payment.Status = payment.PaymentStatus.ToString();
+                payment.IsApproved = true;
+                payment.CapturedDate = DateTime.UtcNow;
+                payment.Comment = $"Paid successfully. Transaction Info {transactionResult.TransactionId}{Environment.NewLine}";
 
-            payment.Transactions.Add(paymentTransaction);
+                var paymentTransaction = new PaymentGatewayTransaction
+                {
+                    IsProcessed = true,
+                    ProcessedDate = DateTime.UtcNow,
+                    CurrencyCode = payment.Currency,
+                    Amount = payment.Sum,
+                    Note = $"Transaction ID: {transactionResult.TransactionId}",
+                    ResponseCode = transactionMessage.Code,
+                    ResponseData = transactionMessage.Description,
+                };
+
+                payment.Transactions.Add(paymentTransaction);
+            }
+
+            if (PaymentActionType == ModuleConstants.AuthCapture)
+            {
+                result.NewPaymentStatus = payment.PaymentStatus = PaymentStatus.Authorized;
+                payment.Status = payment.PaymentStatus.ToString();
+            }
 
             result.IsSuccess = true;
             result.OrderId = order.Id;
@@ -199,7 +347,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             return result;
         }
 
-        private static PostProcessPaymentRequestResult ProcessDeclinedResult(AuthorizeNetAccessTransactionResult transactionResult, PaymentIn payment)
+        private static PostProcessPaymentRequestResult ProcessDeclinedResult(AuthorizeNetTransactionResult transactionResult, PaymentIn payment)
         {
             var transactionMessage = transactionResult.TransactionMessage;
 
@@ -213,7 +361,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             return new PostProcessPaymentRequestResult();
         }
 
-        private static PostProcessPaymentRequestResult ProcessErrorResult(AuthorizeNetAccessTransactionResult transactionResult, PaymentIn payment)
+        private static PostProcessPaymentRequestResult ProcessErrorResult(AuthorizeNetTransactionResult transactionResult, PaymentIn payment)
         {
             var transactionMessage = transactionResult.TransactionMessage;
 
@@ -227,7 +375,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             return new PostProcessPaymentRequestResult();
         }
 
-        private static PostProcessPaymentRequestResult ProcessHeldResult(AuthorizeNetAccessTransactionResult transactionResult, PaymentIn payment)
+        private static PostProcessPaymentRequestResult ProcessHeldResult(AuthorizeNetTransactionResult transactionResult, PaymentIn payment)
         {
             var transactionMessage = transactionResult.TransactionMessage;
 

@@ -3,6 +3,11 @@
 
     <form id="paymentForm" action="{{formAction}}" method="POST" class="ng-pristine ng-valid">
         <p></p>
+
+        <div style="width:350px; display: none;" class="note form-error" id="form-errors">            
+        </div>
+        <div style="clear:both"></div>
+
         <div style="float:left;width:250px;">
             <label>Credit Card Number</label>
             <div id="CreditCardNumber">
@@ -28,7 +33,8 @@
             </div>
         </div>
         <p></p>
-        <input type="hidden" name="orderId" id="orderId" value="{{orderId}}"/>
+        <input type="hidden" name="orderId" id="orderId" value="{{orderId}}" />
+        <input type="hidden" name="userIp" id="userIp" value="{{userIp}}" />
         <input type="hidden" name="dataValue" id="dataValue" />
         <input type="hidden" name="dataDescriptor" id="dataDescriptor" />
         <div style="clear:both"></div>
@@ -70,6 +76,16 @@
                     var paymentButton = document.getElementById('processPayment');
                     paymentButton.className = paymentButton.className.replace("disabled", "");
 
+                    if (response.messages.message.length) {
+                        var errorElement = document.getElementById('form-errors');
+
+                        var message = "There was an error processing your transaction - ";
+                        message = message + response.messages.message[0].text + "(" + response.messages.message[0].code + ")";
+                        errorElement.textContent = message;
+
+                        errorElement.style.display = 'block'
+                    }
+
                     var i = 0;
                     while (i < response.messages.message.length) {
                         console.log(
@@ -90,6 +106,10 @@
 
             var paymentButton = document.getElementById('processPayment');
             paymentButton.className += " disabled";
+
+            var errorElement = document.getElementById('form-errors');
+            errorElement.textContent = "";
+            errorElement.style.display = 'none'
 
             sendPaymentDataToAnet();
         });

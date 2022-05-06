@@ -11,5 +11,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
         public string FormAction { get; set; }
 
         public string OrderId { get; set; }
+
+        public string UserIp { get; set; }
     }
 }
