@@ -66,9 +66,6 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
             // get the response from the service (errors contained if any)
             var response = controller.GetApiResponse();
 
-            var transactionStatus = response.transaction.transactionStatus;
-            var transactionType = response.transaction.transactionType;
-
             var paymentData = response.transaction.payment.Item is creditCardMaskedType creditCardMaskedType
                 ? creditCardMaskedType.cardNumber[^4..]
                 : string.Empty;

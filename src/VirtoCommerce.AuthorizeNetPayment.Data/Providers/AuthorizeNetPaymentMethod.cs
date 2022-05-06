@@ -184,9 +184,9 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             return result;
         }
 
-        public override RefundPaymentRequestResult RefundProcessPayment(RefundPaymentRequest request)
+        public override RefundPaymentRequestResult RefundProcessPayment(RefundPaymentRequest context)
         {
-            var payment = request.GetPayment();
+            var payment = context.GetPayment();
 
             if (payment.IsApproved && payment.PaymentStatus != PaymentStatus.Paid)
             {
@@ -238,7 +238,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             }
             else
             {
-                var order = request.GetOrder();
+                var order = context.GetOrder();
                 var voidRequest = new VoidPaymentRequest
                 {
                     PaymentId = payment.Id,
