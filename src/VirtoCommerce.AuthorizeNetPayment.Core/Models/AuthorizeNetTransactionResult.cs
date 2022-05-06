@@ -42,6 +42,8 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
 
         public string PaymentData { get; set; }
 
+        public string AccountNumber { get; set; }
+
         public IList<AuthorizeNetTransactionMessage> TransactionErrors { get; set; } = new List<AuthorizeNetTransactionMessage>();
     }
 }

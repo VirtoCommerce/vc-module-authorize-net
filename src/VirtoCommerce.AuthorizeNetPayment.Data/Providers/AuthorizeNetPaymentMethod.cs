@@ -261,7 +261,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
         {
             var payment = request.GetPayment();
 
-            if (payment.PaymentStatus != PaymentStatus.Authorized || payment.PaymentStatus != PaymentStatus.Paid)
+            if (payment.PaymentStatus != PaymentStatus.Authorized && payment.PaymentStatus != PaymentStatus.Paid)
             {
                 throw new InvalidOperationException("Only authorized payments can be voided");
             }
@@ -326,8 +326,9 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                     CurrencyCode = payment.Currency,
                     Amount = payment.Sum,
                     Note = $"Transaction ID: {transactionResult.TransactionId}",
+                    Status = transactionMessage.Description,
                     ResponseCode = transactionMessage.Code,
-                    ResponseData = transactionMessage.Description,
+                    ResponseData = $"Account number {transactionResult.AccountNumber}",
                 };
 
                 payment.Transactions.Add(paymentTransaction);
@@ -342,6 +343,8 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             result.IsSuccess = true;
             result.OrderId = order.Id;
             result.OuterId = payment.OuterId = transactionResult.TransactionId;
+
+            order.Status = "Processing";
             payment.AuthorizedDate = DateTime.UtcNow;
 
             return result;

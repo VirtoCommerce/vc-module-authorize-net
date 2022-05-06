@@ -112,6 +112,11 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 Item = opaqueData
             };
 
+            var order = new orderType
+            {
+                invoiceNumber = request.OrderId.Substring(20),
+            };
+
             var transactionType = request.PaymentActionType == ModuleConstants.Sale
                 ? transactionTypeEnum.authCaptureTransaction
                 : transactionTypeEnum.authOnlyTransaction;
@@ -123,6 +128,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 currencyCode = request.CurrencyCode,
                 poNumber = request.OrderNumber,
                 payment = paymentType,
+                order = order,
             };
 
             var createTransactionRequest = new createTransactionRequest
@@ -141,6 +147,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
             return new AuthorizeNetTransactionResult
             {
                 IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
+                AccountNumber = response.transactionResponse?.accountNumber,
                 TransactionResponseCode = response.transactionResponse?.responseCode,
                 TransactionId = response.transactionResponse?.transId,
                 TransactionMessages = response.transactionResponse?.messages?.Select(x => new AuthorizeNetTransactionMessage
@@ -197,6 +204,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
             return new AuthorizeNetTransactionResult
             {
                 IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
+                AccountNumber = response.transactionResponse?.accountNumber,
                 TransactionResponseCode = response.transactionResponse?.responseCode,
                 TransactionId = response.transactionResponse?.transId,
                 TransactionMessages = response.transactionResponse?.messages?.Select(x => new AuthorizeNetTransactionMessage
@@ -263,6 +271,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
             return new AuthorizeNetTransactionResult
             {
                 IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
+                AccountNumber = response.transactionResponse?.accountNumber,
                 TransactionResponseCode = response.transactionResponse?.responseCode,
                 TransactionId = response.transactionResponse?.transId,
                 TransactionMessages = response.transactionResponse?.messages?.Select(x => new AuthorizeNetTransactionMessage
@@ -317,6 +326,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
             return new AuthorizeNetTransactionResult
             {
                 IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
+                AccountNumber = response.transactionResponse?.accountNumber,
                 TransactionResponseCode = response.transactionResponse?.responseCode,
                 TransactionId = response.transactionResponse?.transId,
                 TransactionMessages = response.transactionResponse?.messages?.Select(x => new AuthorizeNetTransactionMessage

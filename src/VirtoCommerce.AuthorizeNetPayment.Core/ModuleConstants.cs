@@ -47,7 +47,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core
                 public static readonly SettingDescriptor AcceptJSTestPath = new SettingDescriptor
                 {
                     Name = "VirtoCommerce.Payment.AuthorizeNetPayment.AcceptJSTestPath",
-                    GroupName = "Payment|Authorize.Net Accept JS",
+                    GroupName = "Payment|Authorize.Net Accept.js",
                     ValueType = SettingValueType.ShortText,
                     DefaultValue = "https://jstest.authorize.net/v1/Accept.js"
                 };
@@ -55,7 +55,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core
                 public static readonly SettingDescriptor AcceptJSProdPath = new SettingDescriptor
                 {
                     Name = "VirtoCommerce.Payment.AuthorizeNetPayment.AcceptJSProdPath",
-                    GroupName = "Payment|Authorize.Net Accept JS",
+                    GroupName = "Payment|Authorize.Net Accept.js",
                     ValueType = SettingValueType.ShortText,
                     DefaultValue = "https://js.authorize.net/v1/Accept.js"
                 };

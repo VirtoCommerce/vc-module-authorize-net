@@ -23,7 +23,7 @@
       },
       "AcceptJSTestPath": {
         "title": "AcceptJS Sandbox path",
-        "description": "Action type of payment"
+        "description": ""
       },
       "AcceptJSProdPath": {
         "title": "AcceptJS Production path",
