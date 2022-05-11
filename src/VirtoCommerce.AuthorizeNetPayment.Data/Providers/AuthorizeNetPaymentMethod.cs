@@ -77,7 +77,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                 TransactionKey = TransactionKey,
             };
 
-            var clientKeyResult = _authorizeNetClient.GetAccessToken(tokenRequest);
+            var clientKeyResult = _authorizeNetClient.GetPublicClientKey(tokenRequest);
 
             var userIp = request.Parameters != null ? request.Parameters["True-Client-IP"] : string.Empty;
 

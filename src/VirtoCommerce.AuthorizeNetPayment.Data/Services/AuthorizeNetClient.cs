@@ -6,12 +6,13 @@ using AuthorizeNet.Api.Controllers.Bases;
 using VirtoCommerce.AuthorizeNetPayment.Core;
 using VirtoCommerce.AuthorizeNetPayment.Core.Models;
 using VirtoCommerce.AuthorizeNetPayment.Core.Services;
+using VirtoCommerce.AuthorizeNetPayment.Data.Extensions;
 
 namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
 {
     public class AuthorizeNetClient : IAuthorizeNetClient
     {
-        public AuthorizeNetTokenResult GetAccessToken(AuthorizeNetTokenRequest request)
+        public AuthorizeNetTokenResult GetPublicClientKey(AuthorizeNetTokenRequest request)
         {
             SetApiMode(request.IsLiveMode);
 
@@ -32,16 +33,16 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
 
             var tokenResult = new AuthorizeNetTokenResult
             {
-                IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
+                IsSuccess = response.messages.resultCode.IsSuccessfulApiResponse(),
                 ClientKey = response.publicClientKey,
             };
 
             return tokenResult;
         }
 
-        public Task<AuthorizeNetTokenResult> GetAccessTokenAsync(AuthorizeNetTokenRequest request)
+        public Task<AuthorizeNetTokenResult> GetPublicClientKeyAsync(AuthorizeNetTokenRequest request)
         {
-            var result = GetAccessToken(request);
+            var result = GetPublicClientKey(request);
             return Task.FromResult(result);
         }
 
@@ -72,7 +73,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
 
             var transactionResult = new AuthorizeNetTransactionResult
             {
-                IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
+                IsSuccess = response.messages.resultCode.IsSuccessfulApiResponse(),
                 TransactionId = response.transaction.transId,
                 TransactionResponseCode = response.transaction?.responseCode.ToString(),
                 TransactionStatus = response.transaction.transactionStatus,
@@ -131,36 +132,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 order = order,
             };
 
-            var createTransactionRequest = new createTransactionRequest
-            {
-                merchantAuthentication = merchantAuthentication,
-                transactionRequest = transactionRequest
-            };
-
-            // instantiate the controller that will call the service
-            var controller = new createTransactionController(createTransactionRequest);
-            controller.Execute();
-
-            var response = controller.GetApiResponse();
-
-            // move to private
-            return new AuthorizeNetTransactionResult
-            {
-                IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
-                AccountNumber = response.transactionResponse?.accountNumber,
-                TransactionResponseCode = response.transactionResponse?.responseCode,
-                TransactionId = response.transactionResponse?.transId,
-                TransactionMessages = response.transactionResponse?.messages?.Select(x => new AuthorizeNetTransactionMessage
-                {
-                    Code = x.code,
-                    Description = x.description,
-                }).ToList(),
-                TransactionErrors = response.transactionResponse?.errors?.Select(x => new AuthorizeNetTransactionMessage
-                {
-                    Code = x.errorCode,
-                    Description = x.errorText,
-                }).ToList(),
-            };
+            return ProcessTransactionRequest(merchantAuthentication, transactionRequest);
         }
 
         public Task<AuthorizeNetTransactionResult> CreateTransactionAsync(AuthorizeNetCreateTransactionRequest request)
@@ -187,37 +159,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 refTransId = request.TransactionId,
             };
 
-            var createTransactionRequest = new createTransactionRequest
-            {
-                merchantAuthentication = merchantAuthentication,
-                transactionRequest = transactionRequest
-            };
-
-            // instantiate the controller that will call the service
-            var controller = new createTransactionController(createTransactionRequest);
-            controller.Execute();
-
-            // get the response from the service (errors contained if any)
-            var response = controller.GetApiResponse();
-
-            // move to private
-            return new AuthorizeNetTransactionResult
-            {
-                IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
-                AccountNumber = response.transactionResponse?.accountNumber,
-                TransactionResponseCode = response.transactionResponse?.responseCode,
-                TransactionId = response.transactionResponse?.transId,
-                TransactionMessages = response.transactionResponse?.messages?.Select(x => new AuthorizeNetTransactionMessage
-                {
-                    Code = x.code,
-                    Description = x.description,
-                }).ToList(),
-                TransactionErrors = response.transactionResponse?.errors?.Select(x => new AuthorizeNetTransactionMessage
-                {
-                    Code = x.errorCode,
-                    Description = x.errorText,
-                }).ToList(),
-            };
+            return ProcessTransactionRequest(merchantAuthentication, transactionRequest);
         }
 
         public Task<AuthorizeNetTransactionResult> CaptureTransactionAsync(AuthorizeNetCaptureTransactionRequest request)
@@ -254,37 +196,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 refTransId = request.TransactionId,
             };
 
-            var refundTransactionRequest = new createTransactionRequest
-            {
-                merchantAuthentication = merchantAuthentication,
-                transactionRequest = transactionRequest
-            };
-
-            // instantiate the controller that will call the service
-            var controller = new createTransactionController(refundTransactionRequest);
-            controller.Execute();
-
-            // get the response from the service (errors contained if any)
-            var response = controller.GetApiResponse();
-
-            // move to private
-            return new AuthorizeNetTransactionResult
-            {
-                IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
-                AccountNumber = response.transactionResponse?.accountNumber,
-                TransactionResponseCode = response.transactionResponse?.responseCode,
-                TransactionId = response.transactionResponse?.transId,
-                TransactionMessages = response.transactionResponse?.messages?.Select(x => new AuthorizeNetTransactionMessage
-                {
-                    Code = x.code,
-                    Description = x.description,
-                }).ToList(),
-                TransactionErrors = response.transactionResponse?.errors?.Select(x => new AuthorizeNetTransactionMessage
-                {
-                    Code = x.errorCode,
-                    Description = x.errorText,
-                }).ToList(),
-            };
+            return ProcessTransactionRequest(merchantAuthentication, transactionRequest);
         }
 
         public Task<AuthorizeNetTransactionResult> RefundTransactionAsync(AuthorizeNetRefundTransactionRequest request)
@@ -310,22 +222,39 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 refTransId = request.TransactionId,
             };
 
-            var voidTransactionRequest = new createTransactionRequest
+            return ProcessTransactionRequest(merchantAuthentication, transactionRequest);
+        }
+
+        public Task<AuthorizeNetTransactionResult> VoidTransactionAsync(AuthorizeNetVoidTransactionRequest request)
+        {
+            var result = VoidTransaction(request);
+            return Task.FromResult(result);
+        }
+
+
+        private static void SetApiMode(bool isLiveMode)
+        {
+            ApiOperationBase<ANetApiRequest, ANetApiResponse>.RunEnvironment = isLiveMode
+                ? AuthorizeNet.Environment.PRODUCTION
+                : AuthorizeNet.Environment.SANDBOX;
+        }
+
+        private static AuthorizeNetTransactionResult ProcessTransactionRequest(merchantAuthenticationType merchantAuthentication, transactionRequestType transactionRequest)
+        {
+            var request = new createTransactionRequest
             {
                 merchantAuthentication = merchantAuthentication,
                 transactionRequest = transactionRequest
             };
 
-            // instantiate the controller that will call the service
-            var controller = new createTransactionController(voidTransactionRequest);
+            var controller = new createTransactionController(request);
             controller.Execute();
 
-            // get the response from the service (errors contained if any)
             var response = controller.GetApiResponse();
 
             return new AuthorizeNetTransactionResult
             {
-                IsSuccess = IsSuccessfulApiResponse(response.messages.resultCode),
+                IsSuccess = response.messages.resultCode.IsSuccessfulApiResponse(),
                 AccountNumber = response.transactionResponse?.accountNumber,
                 TransactionResponseCode = response.transactionResponse?.responseCode,
                 TransactionId = response.transactionResponse?.transId,
@@ -340,24 +269,6 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                     Description = x.errorText,
                 }).ToList(),
             };
-        }
-
-        public Task<AuthorizeNetTransactionResult> VoidTransactionAsync(AuthorizeNetVoidTransactionRequest request)
-        {
-            var result = VoidTransaction(request);
-            return Task.FromResult(result);
-        }
-
-        private static void SetApiMode(bool isLiveMode)
-        {
-            ApiOperationBase<ANetApiRequest, ANetApiResponse>.RunEnvironment = isLiveMode
-                ? AuthorizeNet.Environment.PRODUCTION
-                : AuthorizeNet.Environment.SANDBOX;
-        }
-
-        private static bool IsSuccessfulApiResponse(messageTypeEnum messageType)
-        {
-            return messageType == messageTypeEnum.Ok;
         }
     }
 }

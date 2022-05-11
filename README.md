@@ -1,46 +1,35 @@
-# AuthorizeNetPayment
+# Authorize.Net payment integration module
 
-## Overview
+Authorize.Net Accept.js payment module provides integration with Authorize.Net using <a href="http://developer.authorize.net/api" target="_blank">Accept.js</a> and <a href="https://developer.authorize.net/api/reference/index.html#accept-suite-create-an-accept-payment-transaction">Authorize.net API</a>.
 
-Short overview of what the new module is.
+# Store settings UI
 
-- What is the new or updated experience?
+![Store settings](docs/media/authorize-net-store-settings.png)
 
-- Does this module replace an existing module/experience? If yes, what is the transition plan?
+# Settings
 
-- Does this module has dependency on other ? If yes, list/explain the dependencies.
+The module can be configured in the following places:
+- Platform config file: appsettings.json
+- Store-specific settings: Stores -> (your store) -> Payment methods -> Authorize.Net -> Settings
 
-- List the key deployment scenarios - why would people use this module?
+Confidential Authorize.Net account settings should be configured in appsetting.json:
+* **API login id** - Authorize.Net API login ID from credentials
+* **Transaction key** - Authorize.Net transaction key from credentials
 
-## Functional Requirements
+```json
+"Payments": {
+    "AuthorizeNet": {
+        "ApiLogin": "Your api login", 
+        "TxnKey": "Your transaction key",
+    }
+}
+```
 
-Short description of the new module functional requirements.
+Nonconfidential settings should be configured at Store-specific settings - Stores -> (your store) -> Payment methods -> Authorize.Net -> Settings:
+* **Mode** - Authorize.Net payment gateway mode: test or real.
+* **Process Payment action URL** - URL for post process payment in VC Storefront: {put storefront url here}/api/payments/an/registerpayment.
+* **Payment action type** - Action type of payment: Sale or Authorize/Capture. In "Sale" mode a transaction is automatically submitted for settlement. In "Authorize/Capture" the transaction amount is sent for authorization only. The merchant must manually capture the transaction in the Merchant Interface.
 
-## Scenarios
-
-List of scenarios that the new module implements
-
-1. [Scenario 1](/doc/scenario-name1.md)
-1. [Scenario 2](/doc/scenario-name2.md)
-1. [Scenario 3](/doc/scenario-name3.md)
-    1. [Scenario 3.1](/doc/scenario-name31.md)
-    1. [Scenario 3.2](/doc/scenario-name32.md)
-1. [Scenario 4](/doc/scenario-name4.md)
-
-## Web API
-
-Web API documentation for each module is built out automatically and can be accessed by following the link bellow:
-<https://link-to-swager-api>
-
-## Database Model
-
-![DB model](./docs/media/diagram-db-model.png)
-
-## Related topics
-
-[Some Article1](some-article1.md)
-
-[Some Article2](some-article2.md)
 
 ## License
 
