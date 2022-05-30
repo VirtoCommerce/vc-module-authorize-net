@@ -98,6 +98,12 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                 IsSuccess = true,
                 NewPaymentStatus = PaymentStatus.Pending,
                 HtmlForm = formContentResult.FormContent,
+                PublicParameters = new()
+                {
+                    { "acceptJsPath", AcceptJsPath },
+                    { "apiLogin", ApiLogin },
+                    { "clientKey", clientKeyResult.ClientKey },
+                }
             };
 
             var payment = request.GetPayment();
