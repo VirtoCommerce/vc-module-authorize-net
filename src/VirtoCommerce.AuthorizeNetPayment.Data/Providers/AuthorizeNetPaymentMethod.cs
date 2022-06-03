@@ -372,7 +372,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
 
         private static PostProcessPaymentRequestResult ProcessErrorResult(AuthorizeNetTransactionResult transactionResult, PaymentIn payment)
         {
-            var transactionMessage = transactionResult.TransactionMessage;
+            var transactionMessage = transactionResult.TransactionMessage.Description;
 
             payment.Status = PaymentStatus.Error.ToString();
             payment.ProcessPaymentResult = new ProcessPaymentRequestResult
@@ -386,7 +386,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
 
         private static PostProcessPaymentRequestResult ProcessHeldResult(AuthorizeNetTransactionResult transactionResult, PaymentIn payment)
         {
-            var transactionMessage = transactionResult.TransactionMessage;
+            var transactionMessage = transactionResult.TransactionMessage.Description;
 
             payment.ProcessPaymentResult = new ProcessPaymentRequestResult
             {
