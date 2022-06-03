@@ -308,7 +308,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             TransactionResponse.Declined => ProcessDeclinedResult(transactionResult, payment),
             TransactionResponse.Error => ProcessErrorResult(transactionResult, payment),
             TransactionResponse.HeldForReview => ProcessHeldResult(transactionResult, payment),
-            _ => new PostProcessPaymentRequestResult { ErrorMessage = transactionResult.Error?.Description ?? "Unknown error." },
+            _ => new PostProcessPaymentRequestResult { ErrorMessage = transactionResult.TransactionMessage.Description },
         };
 
         private PostProcessPaymentRequestResult ProcessApprovedResult(AuthorizeNetTransactionResult transactionResult, PaymentIn payment, CustomerOrder order)
@@ -358,16 +358,16 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
 
         private static PostProcessPaymentRequestResult ProcessDeclinedResult(AuthorizeNetTransactionResult transactionResult, PaymentIn payment)
         {
-            var transactionMessage = transactionResult.TransactionMessage;
+            var transactionMessage = transactionResult.TransactionMessage.Description;
 
             payment.Status = PaymentStatus.Declined.ToString();
             payment.ProcessPaymentResult = new ProcessPaymentRequestResult
             {
-                ErrorMessage = $"Your transaction was declined: {transactionMessage.Description} ({transactionMessage.Code})",
+                ErrorMessage = $"Your transaction was declined: {transactionMessage}",
             };
             payment.Comment = $"{payment.ProcessPaymentResult.ErrorMessage}{Environment.NewLine}";
 
-            return new PostProcessPaymentRequestResult();
+            return new PostProcessPaymentRequestResult { ErrorMessage = payment.ProcessPaymentResult.ErrorMessage };
         }
 
         private static PostProcessPaymentRequestResult ProcessErrorResult(AuthorizeNetTransactionResult transactionResult, PaymentIn payment)
@@ -377,11 +377,11 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             payment.Status = PaymentStatus.Error.ToString();
             payment.ProcessPaymentResult = new ProcessPaymentRequestResult
             {
-                ErrorMessage = $"There was an error processing your transaction: {transactionMessage.Description} ({transactionMessage.Code})",
+                ErrorMessage = $"There was an error processing your transaction: {transactionMessage}",
             };
             payment.Comment = $"{payment.ProcessPaymentResult.ErrorMessage}{Environment.NewLine}";
 
-            return new PostProcessPaymentRequestResult();
+            return new PostProcessPaymentRequestResult { ErrorMessage = payment.ProcessPaymentResult.ErrorMessage };
         }
 
         private static PostProcessPaymentRequestResult ProcessHeldResult(AuthorizeNetTransactionResult transactionResult, PaymentIn payment)
@@ -390,11 +390,11 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
 
             payment.ProcessPaymentResult = new ProcessPaymentRequestResult
             {
-                ErrorMessage = $"Your transaction was held for review: {transactionMessage.Description} ({transactionMessage.Code})",
+                ErrorMessage = $"Your transaction was held for review: {transactionMessage}",
             };
             payment.Comment = $"{payment.ProcessPaymentResult.ErrorMessage}{Environment.NewLine}";
 
-            return new PostProcessPaymentRequestResult();
+            return new PostProcessPaymentRequestResult { ErrorMessage = payment.ProcessPaymentResult.ErrorMessage };
         }
     }
 }

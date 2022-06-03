@@ -251,53 +251,48 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
             var controller = new createTransactionController(request);
             controller.Execute();
 
-            var errorResponse = controller.GetErrorResponse();
-            if (errorResponse != null)
+            var response = controller.GetApiResponse();
+            if (response != null)
             {
-                return GetErrorResponse(errorResponse);
+                return GetTransactionResponse(response);
             }
             else
             {
-                var response = controller.GetApiResponse();
-
-                var isSuccess = response.messages.resultCode.IsSuccessfulApiResponse();
-                var result = isSuccess
-                    ? GerResponse(response)
-                    : GetErrorResponse(response);
-
-                return result;
-
+                var errorResponse = controller.GetErrorResponse();
+                return GetResponse(errorResponse);
             }
         }
 
-        private static AuthorizeNetTransactionResult GerResponse(createTransactionResponse response)
+        private static AuthorizeNetTransactionResult GetTransactionResponse(createTransactionResponse response)
         {
-            var result = new AuthorizeNetTransactionResult
+            var result = GetResponse(response);
+
+            if (response.transactionResponse != null)
             {
-                IsSuccess = true,
-                AccountNumber = response.transactionResponse?.accountNumber,
-                TransactionResponseCode = response.transactionResponse?.responseCode,
-                TransactionId = response.transactionResponse?.transId,
-                TransactionMessages = response.transactionResponse?.messages?.Select(x => new AuthorizeNetTransactionMessage
+                result.AccountNumber = response.transactionResponse.accountNumber;
+                result.TransactionResponseCode = response.transactionResponse.responseCode;
+                result.TransactionId = response.transactionResponse.transId;
+                result.TransactionMessages = response.transactionResponse.messages?.Select(x => new AuthorizeNetTransactionMessage
                 {
                     Code = x.code,
                     Description = x.description,
-                }).ToList() ?? new List<AuthorizeNetTransactionMessage>(),
-                TransactionErrors = response.transactionResponse?.errors?.Select(x => new AuthorizeNetTransactionMessage
+                }).ToList() ?? new List<AuthorizeNetTransactionMessage>();
+                result.TransactionErrors = response.transactionResponse.errors?.Select(x => new AuthorizeNetTransactionMessage
                 {
                     Code = x.errorCode,
                     Description = x.errorText,
-                }).ToList() ?? new List<AuthorizeNetTransactionMessage>(),
-            };
+                }).ToList() ?? new List<AuthorizeNetTransactionMessage>();
+            }
 
             return result;
         }
 
-        private static AuthorizeNetTransactionResult GetErrorResponse(ANetApiResponse errorResponse)
+        private static AuthorizeNetTransactionResult GetResponse(ANetApiResponse response)
         {
             var result = new AuthorizeNetTransactionResult
             {
-                Errors = errorResponse.messages.message.Select(x => new AuthorizeNetTransactionMessage
+                IsSuccess = response.messages.resultCode.IsSuccessfulApiResponse(),
+                Errors = response.messages.message?.Select(x => new AuthorizeNetTransactionMessage
                 {
                     Code = x.code,
                     Description = x.text
