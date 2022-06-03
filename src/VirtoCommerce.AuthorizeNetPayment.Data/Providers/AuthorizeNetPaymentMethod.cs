@@ -308,7 +308,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             TransactionResponse.Declined => ProcessDeclinedResult(transactionResult, payment),
             TransactionResponse.Error => ProcessErrorResult(transactionResult, payment),
             TransactionResponse.HeldForReview => ProcessHeldResult(transactionResult, payment),
-            _ => new PostProcessPaymentRequestResult { ErrorMessage = "Unknown transaction status." },
+            _ => new PostProcessPaymentRequestResult { ErrorMessage = transactionResult.Error?.Description ?? "Unknown error." },
         };
 
         private PostProcessPaymentRequestResult ProcessApprovedResult(AuthorizeNetTransactionResult transactionResult, PaymentIn payment, CustomerOrder order)

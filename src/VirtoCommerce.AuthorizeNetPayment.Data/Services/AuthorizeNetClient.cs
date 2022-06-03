@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AuthorizeNet.Api.Contracts.V1;
@@ -250,11 +251,30 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
             var controller = new createTransactionController(request);
             controller.Execute();
 
-            var response = controller.GetApiResponse();
-
-            return new AuthorizeNetTransactionResult
+            var errorResponse = controller.GetErrorResponse();
+            if (errorResponse != null)
             {
-                IsSuccess = response.messages.resultCode.IsSuccessfulApiResponse(),
+                return GetErrorResponse(errorResponse);
+            }
+            else
+            {
+                var response = controller.GetApiResponse();
+
+                var isSuccess = response.messages.resultCode.IsSuccessfulApiResponse();
+                var result = isSuccess
+                    ? GerResponse(response)
+                    : GetErrorResponse(response);
+
+                return result;
+
+            }
+        }
+
+        private static AuthorizeNetTransactionResult GerResponse(createTransactionResponse response)
+        {
+            var result = new AuthorizeNetTransactionResult
+            {
+                IsSuccess = true,
                 AccountNumber = response.transactionResponse?.accountNumber,
                 TransactionResponseCode = response.transactionResponse?.responseCode,
                 TransactionId = response.transactionResponse?.transId,
@@ -262,13 +282,29 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 {
                     Code = x.code,
                     Description = x.description,
-                }).ToList(),
+                }).ToList() ?? new List<AuthorizeNetTransactionMessage>(),
                 TransactionErrors = response.transactionResponse?.errors?.Select(x => new AuthorizeNetTransactionMessage
                 {
                     Code = x.errorCode,
                     Description = x.errorText,
-                }).ToList(),
+                }).ToList() ?? new List<AuthorizeNetTransactionMessage>(),
             };
+
+            return result;
+        }
+
+        private static AuthorizeNetTransactionResult GetErrorResponse(ANetApiResponse errorResponse)
+        {
+            var result = new AuthorizeNetTransactionResult
+            {
+                Errors = errorResponse.messages.message.Select(x => new AuthorizeNetTransactionMessage
+                {
+                    Code = x.code,
+                    Description = x.text
+                }).ToList() ?? new List<AuthorizeNetTransactionMessage>(),
+            };
+
+            return result;
         }
     }
 }

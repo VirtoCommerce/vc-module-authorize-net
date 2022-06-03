@@ -20,11 +20,15 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
 
         public IList<AuthorizeNetTransactionMessage> TransactionMessages { get; set; } = new List<AuthorizeNetTransactionMessage>();
 
+        public IList<AuthorizeNetTransactionMessage> TransactionErrors { get; set; } = new List<AuthorizeNetTransactionMessage>();
+
         public AuthorizeNetTransactionMessage TransactionMessage
         {
             get
             {
-                return TransactionMessages.FirstOrDefault() ?? new AuthorizeNetTransactionMessage();
+                return TransactionMessages.FirstOrDefault()
+                    ?? TransactionErrors?.FirstOrDefault()
+                    ?? new AuthorizeNetTransactionMessage();
             }
         }
 
@@ -44,6 +48,14 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
 
         public string AccountNumber { get; set; }
 
-        public IList<AuthorizeNetTransactionMessage> TransactionErrors { get; set; } = new List<AuthorizeNetTransactionMessage>();
+        public IList<AuthorizeNetTransactionMessage> Errors { get; set; } = new List<AuthorizeNetTransactionMessage>();
+
+        public AuthorizeNetTransactionMessage Error
+        {
+            get
+            {
+                return Errors?.FirstOrDefault() ?? new AuthorizeNetTransactionMessage();
+            }
+        }
     }
 }
