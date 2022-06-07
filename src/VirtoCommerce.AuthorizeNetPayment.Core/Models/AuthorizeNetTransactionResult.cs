@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
 {
@@ -20,12 +21,40 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
 
         public IList<AuthorizeNetTransactionMessage> TransactionMessages { get; set; } = new List<AuthorizeNetTransactionMessage>();
 
+        public IList<AuthorizeNetTransactionMessage> TransactionErrors { get; set; } = new List<AuthorizeNetTransactionMessage>();
+
+        public IList<AuthorizeNetTransactionMessage> Errors { get; set; } = new List<AuthorizeNetTransactionMessage>();
+
         public AuthorizeNetTransactionMessage TransactionMessage
         {
             get
             {
-                return TransactionMessages.FirstOrDefault() ?? new AuthorizeNetTransactionMessage();
+                var result = new AuthorizeNetTransactionMessage()
+                {
+                    Code = string.Empty,
+                    Description = string.Empty,
+                };
+
+                CombineMessages(Errors, result);
+                CombineMessages(TransactionErrors, result);
+                CombineMessages(TransactionMessages, result);
+
+                return result;
             }
+        }
+
+        private void CombineMessages(IList<AuthorizeNetTransactionMessage> messages, AuthorizeNetTransactionMessage message)
+        {
+            if (messages.IsNullOrEmpty())
+            {
+                return;
+            }
+
+            var codes = string.Join(";", messages.Select(x => x.Code));
+            message.Code = $"{codes};{message.Code}";
+
+            var descriptions = string.Join(";", messages.Select(x => $"{x.Description} ({x.Code})"));
+            message.Description = $"{descriptions};{message.Description}";
         }
 
         public string TransactionStatus { get; set; }
@@ -43,7 +72,5 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
         public string PaymentData { get; set; }
 
         public string AccountNumber { get; set; }
-
-        public IList<AuthorizeNetTransactionMessage> TransactionErrors { get; set; } = new List<AuthorizeNetTransactionMessage>();
     }
 }
