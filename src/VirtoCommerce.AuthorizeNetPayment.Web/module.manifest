@@ -3,7 +3,10 @@
     <id>VirtoCommerce.AuthorizeNetPayment</id>
     <version>3.204.0</version>
     <version-tag />
+
     <platformVersion>3.200.0</platformVersion>
+    <dependencies />
+
     <title>VirtoCommerce AuthorizeNetPayment extension module</title>
     <description>VirtoCommerce AuthorizeNetPayment extension module</description>
     <authors>
@@ -16,10 +19,9 @@
     <iconUrl>Modules/$(VirtoCommerce.AuthorizeNetPayment)/Content/logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <releaseNotes>First version.</releaseNotes>
-    <copyright>Copyright © 2022 VirtoCommerce. All rights reserved</copyright>
+    <copyright>Copyright © 2022–2023 VirtoCommerce. All rights reserved</copyright>
     <tags>extension module</tags>
     <assemblyFile>VirtoCommerce.AuthorizeNetPayment.Web.dll</assemblyFile>
     <moduleType>VirtoCommerce.AuthorizeNetPayment.Web.Module, VirtoCommerce.AuthorizeNetPayment.Web</moduleType>
-    <dependencies />
     <useFullTypeNameInSwagger>false</useFullTypeNameInSwagger>
 </module>
