@@ -1,1 +1,25 @@
-﻿<?xml version="1.0" encoding="utf-8"?><module xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><id>VirtoCommerce.AuthorizeNetPayment</id><version>3.204.0</version><version-tag /><platformVersion>3.200.0</platformVersion><title>VirtoCommerce AuthorizeNetPayment extension module</title><description>VirtoCommerce AuthorizeNetPayment extension module</description><authors><author>Konstantin Savosteev</author></authors><owners><owner>VirtoCommerce</owner></owners><projectUrl>https://github.com/VirtoCommerce/vc-module-AuthorizeNetPayment</projectUrl><iconUrl>Modules/$(VirtoCommerce.AuthorizeNetPayment)/Content/logo.png</iconUrl><requireLicenseAcceptance>false</requireLicenseAcceptance><releaseNotes>First version.</releaseNotes><copyright>Copyright © 2022 VirtoCommerce. All rights reserved</copyright><tags>extension module</tags><assemblyFile>VirtoCommerce.AuthorizeNetPayment.Web.dll</assemblyFile><moduleType>VirtoCommerce.AuthorizeNetPayment.Web.Module, VirtoCommerce.AuthorizeNetPayment.Web</moduleType><dependencies /><useFullTypeNameInSwagger>false</useFullTypeNameInSwagger></module>
+<?xml version="1.0" encoding="utf-8"?>
+<module xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <id>VirtoCommerce.AuthorizeNetPayment</id>
+    <version>3.204.0</version>
+    <version-tag />
+    <platformVersion>3.200.0</platformVersion>
+    <title>VirtoCommerce AuthorizeNetPayment extension module</title>
+    <description>VirtoCommerce AuthorizeNetPayment extension module</description>
+    <authors>
+        <author>Konstantin Savosteev</author>
+    </authors>
+    <owners>
+        <owner>VirtoCommerce</owner>
+    </owners>
+    <projectUrl>https://github.com/VirtoCommerce/vc-module-AuthorizeNetPayment</projectUrl>
+    <iconUrl>Modules/$(VirtoCommerce.AuthorizeNetPayment)/Content/logo.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <releaseNotes>First version.</releaseNotes>
+    <copyright>Copyright © 2022 VirtoCommerce. All rights reserved</copyright>
+    <tags>extension module</tags>
+    <assemblyFile>VirtoCommerce.AuthorizeNetPayment.Web.dll</assemblyFile>
+    <moduleType>VirtoCommerce.AuthorizeNetPayment.Web.Module, VirtoCommerce.AuthorizeNetPayment.Web</moduleType>
+    <dependencies />
+    <useFullTypeNameInSwagger>false</useFullTypeNameInSwagger>
+</module>
