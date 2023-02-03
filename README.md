@@ -1,12 +1,12 @@
-# Authorize.Net payment integration module
+# Authorize.Net Payment Module
 
-Authorize.Net Accept.js payment module provides integration with Authorize.Net using <a href="http://developer.authorize.net/api" target="_blank">Accept.js</a> and <a href="https://developer.authorize.net/api/reference/index.html#accept-suite-create-an-accept-payment-transaction">Authorize.net API</a>.
+Authorize.Net payment module provides integration with Authorize.Net using <a href="http://developer.authorize.net/api" target="_blank">Accept.js</a> and <a href="https://developer.authorize.net/api/reference/index.html#accept-suite-create-an-accept-payment-transaction">Authorize.net API</a>.
 
-# Store settings UI
+## Store settings UI
 
 ![Store settings](docs/media/authorize-net-store-settings.png)
 
-# Settings
+## Settings
 
 The module can be configured in the following places:
 - Platform config file: appsettings.json
