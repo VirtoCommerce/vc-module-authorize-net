@@ -12,6 +12,9 @@
   <owners>
     <owner>Virto Commerce</owner>
   </owners>
+  <groups>
+    <group>commerce</group>
+  </groups>  
   <projectUrl>https://github.com/VirtoCommerce/vc-module-AuthorizeNetPayment</projectUrl>
   <iconUrl>Modules/$(VirtoCommerce.AuthorizeNetPayment)/Content/logo.png</iconUrl>
   <requireLicenseAcceptance>false</requireLicenseAcceptance>
