@@ -41,8 +41,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
         {
             get
             {
-                var mode = Settings.GetSettingValue(ModuleConstants.Settings.General.Mode.Name,
-                    ModuleConstants.Settings.General.Mode.DefaultValue.ToString());
+                var mode = Settings.GetValue<string>(ModuleConstants.Settings.General.Mode);
                 return mode != ModuleConstants.Test;
             }
         }
@@ -52,20 +51,16 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             get
             {
                 var result = IsLiveMode
-                    ? Settings.GetSettingValue(ModuleConstants.Settings.General.AcceptJSProdPath.Name,
-                        ModuleConstants.Settings.General.AcceptJSProdPath.DefaultValue.ToString())
-                    : Settings.GetSettingValue(ModuleConstants.Settings.General.AcceptJSTestPath.Name,
-                        ModuleConstants.Settings.General.AcceptJSTestPath.DefaultValue.ToString());
+                    ? Settings.GetValue<string>(ModuleConstants.Settings.General.AcceptJSProdPath)
+                    : Settings.GetValue<string>(ModuleConstants.Settings.General.AcceptJSTestPath);
 
                 return result;
             }
         }
 
-        private string PaymentActionType => Settings.GetSettingValue(ModuleConstants.Settings.General.PaymentActionType.Name,
-            ModuleConstants.Settings.General.PaymentActionType.DefaultValue.ToString());
+        private string PaymentActionType => Settings.GetValue<string>(ModuleConstants.Settings.General.PaymentActionType);
 
-        private string ProcessPaymentAction => Settings.GetSettingValue(ModuleConstants.Settings.General.ProcessPaymentAction.Name,
-            ModuleConstants.Settings.General.ProcessPaymentAction.DefaultValue.ToString());
+        private string ProcessPaymentAction => Settings.GetValue<string>(ModuleConstants.Settings.General.ProcessPaymentAction);
 
 
         public override ProcessPaymentRequestResult ProcessPayment(ProcessPaymentRequest request)
