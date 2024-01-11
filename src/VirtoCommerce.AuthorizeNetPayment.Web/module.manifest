@@ -3,11 +3,11 @@
   <id>VirtoCommerce.AuthorizeNetPayment</id>
   <version>3.800.0</version>
   <version-tag />
-  <platformVersion>3.800.0-alpha.12831-net8</platformVersion>
+  <platformVersion>3.800.0</platformVersion>
   <title>Authorize.Net Payment Method</title>
   <description>Provides the integration with Authorize.Net payment provider</description>
   <dependencies>
-      <dependency id="VirtoCommerce.Payment" version="3.800.0-alpha.212-pt-14740-net8" />
+      <dependency id="VirtoCommerce.Payment" version="3.800.0" />
   </dependencies>
   <authors>
     <author>Konstantin Savosteev</author>
