@@ -24,6 +24,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Web
 
             serviceCollection.AddTransient<IAuthorizeNetCheckoutService, AuthorizeNetCheckoutService>();
             serviceCollection.AddTransient<IAuthorizeNetClient, AuthorizeNetClient>();
+            serviceCollection.AddTransient<AuthorizeNetPaymentMethod>();
         }
 
         public void PostInitialize(IApplicationBuilder appBuilder)
@@ -31,13 +32,9 @@ namespace VirtoCommerce.AuthorizeNetPayment.Web
             // register settings
             var settingsRegistrar = appBuilder.ApplicationServices.GetRequiredService<ISettingsRegistrar>();
             settingsRegistrar.RegisterSettings(ModuleConstants.Settings.AllSettings, ModuleInfo.Id);
-
-            var authorizeNetOptions = appBuilder.ApplicationServices.GetRequiredService<IOptions<AuthorizeNetPaymentMethodOptions>>();
             var paymentMethodsRegistrar = appBuilder.ApplicationServices.GetRequiredService<IPaymentMethodsRegistrar>();
-            paymentMethodsRegistrar.RegisterPaymentMethod(() => new AuthorizeNetPaymentMethod(
-                appBuilder.ApplicationServices.GetService<IAuthorizeNetClient>(),
-                appBuilder.ApplicationServices.GetService<IAuthorizeNetCheckoutService>(),
-                authorizeNetOptions));
+            paymentMethodsRegistrar.RegisterPaymentMethod(() => 
+                appBuilder.ApplicationServices.GetService<AuthorizeNetPaymentMethod>());
 
             settingsRegistrar.RegisterSettingsForType(ModuleConstants.Settings.General.AllSettings, nameof(AuthorizeNetPaymentMethod));
         }

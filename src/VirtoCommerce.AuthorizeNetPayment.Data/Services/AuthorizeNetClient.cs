@@ -1,6 +1,14 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Mime;
+using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
+using System.Xml.Serialization;
 using AuthorizeNet.Api.Contracts.V1;
 using AuthorizeNet.Api.Controllers;
 using AuthorizeNet.Api.Controllers.Bases;
@@ -13,6 +21,11 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
 {
     public class AuthorizeNetClient : IAuthorizeNetClient
     {
+        private IHttpClientFactory _httpClientFactory;
+        public AuthorizeNetClient(IHttpClientFactory httpClientFactory)
+        {
+            _httpClientFactory = httpClientFactory;
+        }
         public AuthorizeNetTokenResult GetPublicClientKey(AuthorizeNetTokenRequest request)
         {
             SetApiMode(request.IsLiveMode);
@@ -113,7 +126,15 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
             {
                 Item = opaqueData
             };
-
+            if (request.CreditCard != null)
+            {
+                paymentType.Item = new creditCardType
+                {
+                    cardCode = request.CreditCard.CardCode,
+                    cardNumber = request.CreditCard.CardNumber,
+                    expirationDate = request.CreditCard.ExpirationDate
+                };
+            }
             var order = new orderType
             {
                 invoiceNumber = request.OrderId.Substring(20),
@@ -133,7 +154,33 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 order = order,
             };
 
-            return ProcessTransactionRequest(merchantAuthentication, transactionRequest);
+            if(request.CreditCard != null)
+            {
+                using var stream = new MemoryStream();
+                var proxyHttpClient = _httpClientFactory.CreateClient(request.CreditCard.ProxyHttpClientName);
+                var xmlSerializer = new XmlSerializer(typeof(AuthorizeNetCreateTransactionRequest));
+                using var xmlWriter = XmlWriter.Create(stream, new XmlWriterSettings
+                {
+                    Encoding = new UTF8Encoding(false, true), //Exclude BOM
+                    Indent = true,
+                });
+                xmlSerializer.Serialize(xmlWriter, this);
+                using var content = new StreamContent(stream);
+                content.Headers.ContentType = new MediaTypeHeaderValue(MediaTypeNames.Application.Xml);
+                var proxyRequest = new HttpRequestMessage(HttpMethod.Post, new Uri(request.CreditCard.ProxyEndpointUrl))
+                {
+                    Content = content
+                };
+                var response = proxyHttpClient.Send(proxyRequest);
+                response.EnsureSuccessStatusCode();
+                throw new NotImplementedException();
+                //TODO: Deserialize response
+
+            }
+            else
+            {
+                return ProcessTransactionRequest(merchantAuthentication, transactionRequest);
+            }
         }
 
         public Task<AuthorizeNetTransactionResult> CreateTransactionAsync(AuthorizeNetCreateTransactionRequest request)
@@ -248,9 +295,9 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 transactionRequest = transactionRequest
             };
 
+
             var controller = new createTransactionController(request);
             controller.Execute();
-
             var response = controller.GetApiResponse();
             if (response != null)
             {
@@ -261,6 +308,8 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 var errorResponse = controller.GetErrorResponse();
                 return GetResponse(errorResponse);
             }
+
+
         }
 
         private static AuthorizeNetTransactionResult GetTransactionResponse(createTransactionResponse response)

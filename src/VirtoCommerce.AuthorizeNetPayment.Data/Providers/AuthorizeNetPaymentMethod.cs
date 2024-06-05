@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Specialized;
+using System.Net.Http;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using VirtoCommerce.AuthorizeNetPayment.Core;
 using VirtoCommerce.AuthorizeNetPayment.Core.Models;
 using VirtoCommerce.AuthorizeNetPayment.Core.Services;
@@ -124,6 +126,20 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             var payment = request.GetPayment();
             var order = request.GetOrder();
 
+            AuthorizeNetCreditCard creditCard = null;
+            if (request.Parameters["CreditCard"] != null)
+            {
+                var tokenizedCard = JsonConvert.DeserializeObject<dynamic>(request.Parameters["CreditCard"]);
+                creditCard = new AuthorizeNetCreditCard
+                {
+                    CardCode = tokenizedCard.Cvv,
+                    CardNumber = tokenizedCard.CardNumber,
+                    ExpirationDate = tokenizedCard.CardExpiration,
+                    ProxyEndpointUrl = request.Parameters["ProxyEndpointUrl"],
+                    ProxyHttpClientName = request.Parameters["ProxyHttpClientName"]
+                };
+            }
+
             var transactionRequest = new AuthorizeNetCreateTransactionRequest
             {
                 IsLiveMode = IsLiveMode,
@@ -136,7 +152,9 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                 CurrencyCode = payment.Currency,
                 OrderId = order.Id,
                 OrderNumber = order.Number,
+                CreditCard = creditCard,
             };
+
 
             var transactionResult = _authorizeNetClient.CreateTransaction(transactionRequest);
             var result = ProcessCreateTransactionResult(transactionResult, payment, order);
