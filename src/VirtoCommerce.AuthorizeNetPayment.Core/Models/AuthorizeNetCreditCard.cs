@@ -2,12 +2,12 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
 {
     public class AuthorizeNetCreditCard
     {
-        public string CardCode;
-        public string CardNumber;
-        public string CardExpiration;
+        public string CardCode { get; set; }
+        public string CardNumber { get; set; }
+        public string CardExpiration { get; set; }
 
-        public string ProxyEndpointUrl;
-        public string ProxyHttpClientName;
-        public string BearerToken;
+        public string ProxyEndpointUrl { get; set; }
+        public string ProxyHttpClientName { get; set; }
+        public string BearerToken { get; set; }
     }
 }
