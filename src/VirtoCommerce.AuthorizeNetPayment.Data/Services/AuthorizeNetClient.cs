@@ -30,7 +30,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
         {
             SetApiMode(request.IsLiveMode);
 
-            var authoriseRequest = new getMerchantDetailsRequest
+            var authorizeRequest = new getMerchantDetailsRequest
             {
                 merchantAuthentication = new merchantAuthenticationType
                 {
@@ -40,7 +40,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 }
             };
 
-            var controller = new getMerchantDetailsController(authoriseRequest);
+            var controller = new getMerchantDetailsController(authorizeRequest);
             controller.Execute();
 
             var response = controller.GetApiResponse();
@@ -71,8 +71,11 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 ItemElementName = ItemChoiceType.transactionKey,
             };
 
-            var transactionDetailsRequest = new getTransactionDetailsRequest { merchantAuthentication = merchantAuthentication };
-            transactionDetailsRequest.transId = request.TransactionId;
+            var transactionDetailsRequest = new getTransactionDetailsRequest
+            {
+                merchantAuthentication = merchantAuthentication,
+                transId = request.TransactionId
+            };
 
             // instantiate the controller that will call the service
             var controller = new getTransactionDetailsController(transactionDetailsRequest);
@@ -132,7 +135,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 {
                     cardCode = request.CreditCard.CardCode,
                     cardNumber = request.CreditCard.CardNumber,
-                    expirationDate = request.CreditCard.ExpirationDate
+                    expirationDate = request.CreditCard.CardExpiration
                 };
             }
             var order = new orderType
@@ -148,39 +151,19 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
             {
                 transactionType = transactionType.ToString(), // charge the card
                 amount = request.Amount,
+                amountSpecified = true,
                 currencyCode = request.CurrencyCode,
                 poNumber = request.OrderNumber,
                 payment = paymentType,
                 order = order,
             };
 
-            if(request.CreditCard != null)
+            if (request.CreditCard != null)
             {
-                using var stream = new MemoryStream();
-                var proxyHttpClient = _httpClientFactory.CreateClient(request.CreditCard.ProxyHttpClientName);
-                var xmlSerializer = new XmlSerializer(typeof(AuthorizeNetCreateTransactionRequest));
-                using var xmlWriter = XmlWriter.Create(stream, new XmlWriterSettings
-                {
-                    Encoding = new UTF8Encoding(false, true), //Exclude BOM
-                    Indent = true,
-                });
-                xmlSerializer.Serialize(xmlWriter, this);
-                using var content = new StreamContent(stream);
-                content.Headers.ContentType = new MediaTypeHeaderValue(MediaTypeNames.Application.Xml);
-                var proxyRequest = new HttpRequestMessage(HttpMethod.Post, new Uri(request.CreditCard.ProxyEndpointUrl))
-                {
-                    Content = content
-                };
-                var response = proxyHttpClient.Send(proxyRequest);
-                response.EnsureSuccessStatusCode();
-                throw new NotImplementedException();
-                //TODO: Deserialize response
+                return ProcessTransactionProxyRequest(merchantAuthentication, transactionRequest, request.CreditCard);
+            }
 
-            }
-            else
-            {
-                return ProcessTransactionRequest(merchantAuthentication, transactionRequest);
-            }
+            return ProcessTransactionRequest(merchantAuthentication, transactionRequest);
         }
 
         public Task<AuthorizeNetTransactionResult> CreateTransactionAsync(AuthorizeNetCreateTransactionRequest request)
@@ -295,7 +278,6 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 transactionRequest = transactionRequest
             };
 
-
             var controller = new createTransactionController(request);
             controller.Execute();
             var response = controller.GetApiResponse();
@@ -303,13 +285,60 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
             {
                 return GetTransactionResponse(response);
             }
-            else
+
+            var errorResponse = controller.GetErrorResponse();
+            return GetResponse(errorResponse);
+        }
+
+        private AuthorizeNetTransactionResult ProcessTransactionProxyRequest(merchantAuthenticationType merchantAuthentication, transactionRequestType transactionRequest, AuthorizeNetCreditCard creditCard)
+        {
+            var createTxRequest = new createTransactionRequest
             {
-                var errorResponse = controller.GetErrorResponse();
-                return GetResponse(errorResponse);
+                merchantAuthentication = merchantAuthentication,
+                transactionRequest = transactionRequest
+            };
+            using var stream = new MemoryStream();
+            using var xmlWriter = XmlWriter.Create(stream, new XmlWriterSettings
+            {
+                Encoding = new UTF8Encoding(false, true), //Exclude BOM
+                Indent = true,
+            });
+
+            var xmlSerializer = new XmlSerializer(typeof(createTransactionRequest));
+            xmlSerializer.Serialize(xmlWriter, createTxRequest);
+
+            stream.Position = 0;
+            using var content = new StreamContent(stream);
+
+            content.Headers.ContentType = new MediaTypeHeaderValue(MediaTypeNames.Application.Xml);
+            var proxyRequest = new HttpRequestMessage(HttpMethod.Post, new Uri(creditCard.ProxyEndpointUrl))
+            {
+                Headers =
+                {
+                    Authorization = new AuthenticationHeaderValue("Bearer", creditCard.BearerToken),
+                },
+                Content = content
+            };
+
+            using var proxyHttpClient = _httpClientFactory.CreateClient(creditCard.ProxyHttpClientName);
+            var response = proxyHttpClient.Send(proxyRequest);
+            response.EnsureSuccessStatusCode();
+            using var resultStream = response.Content.ReadAsStream();
+            using var xmlReader = XmlReader.Create(resultStream);
+            try
+            {
+                var responseXmlSerializer = new XmlSerializer(typeof(createTransactionResponse));
+                var txResponse = responseXmlSerializer.Deserialize(xmlReader) as createTransactionResponse;
+                var result = GetTransactionResponse(txResponse);
+                return result;
             }
-
-
+            catch (Exception e)
+            {
+                var responseXmlSerializer = new XmlSerializer(typeof(ANetApiResponse));
+                var txResponse = responseXmlSerializer.Deserialize(xmlReader) as ANetApiResponse;
+                var result = GetResponse(txResponse);
+                return result;
+            }
         }
 
         private static AuthorizeNetTransactionResult GetTransactionResponse(createTransactionResponse response)

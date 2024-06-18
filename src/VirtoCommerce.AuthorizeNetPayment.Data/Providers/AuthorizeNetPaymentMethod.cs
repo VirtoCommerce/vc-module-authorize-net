@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Specialized;
-using System.Net.Http;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using VirtoCommerce.AuthorizeNetPayment.Core;
@@ -115,7 +114,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             var dataDescriptor = request.Parameters.Get(ModuleConstants.DataDescriptorParamName);
             var dataValue = request.Parameters.Get(ModuleConstants.DataValueParamName);
 
-            if (dataDescriptor == null || dataValue == null)
+            if ((dataDescriptor == null || dataValue == null) && request.Parameters["CreditCard"] == null)
             {
                 return new PostProcessPaymentRequestResult
                 {
@@ -134,9 +133,10 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                 {
                     CardCode = tokenizedCard.Cvv,
                     CardNumber = tokenizedCard.CardNumber,
-                    ExpirationDate = tokenizedCard.CardExpiration,
+                    CardExpiration = tokenizedCard.CardExpiration,
                     ProxyEndpointUrl = request.Parameters["ProxyEndpointUrl"],
-                    ProxyHttpClientName = request.Parameters["ProxyHttpClientName"]
+                    ProxyHttpClientName = request.Parameters["ProxyHttpClientName"],
+                    BearerToken = request.Parameters["BearerToken"],
                 };
             }
 
@@ -154,7 +154,6 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                 OrderNumber = order.Number,
                 CreditCard = creditCard,
             };
-
 
             var transactionResult = _authorizeNetClient.CreateTransaction(transactionRequest);
             var result = ProcessCreateTransactionResult(transactionResult, payment, order);

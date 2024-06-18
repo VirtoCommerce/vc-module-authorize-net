@@ -4,9 +4,10 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
     {
         public string CardCode;
         public string CardNumber;
-        public string ExpirationDate;
+        public string CardExpiration;
 
         public string ProxyEndpointUrl;
         public string ProxyHttpClientName;
+        public string BearerToken;
     }
 }
