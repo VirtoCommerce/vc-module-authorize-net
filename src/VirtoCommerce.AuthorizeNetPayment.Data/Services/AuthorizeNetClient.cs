@@ -21,7 +21,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
 {
     public class AuthorizeNetClient : IAuthorizeNetClient
     {
-        private IHttpClientFactory _httpClientFactory;
+        private readonly IHttpClientFactory _httpClientFactory;
         public AuthorizeNetClient(IHttpClientFactory httpClientFactory)
         {
             _httpClientFactory = httpClientFactory;
@@ -332,7 +332,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 var result = GetTransactionResponse(txResponse);
                 return result;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 var responseXmlSerializer = new XmlSerializer(typeof(ANetApiResponse));
                 var txResponse = responseXmlSerializer.Deserialize(xmlReader) as ANetApiResponse;
