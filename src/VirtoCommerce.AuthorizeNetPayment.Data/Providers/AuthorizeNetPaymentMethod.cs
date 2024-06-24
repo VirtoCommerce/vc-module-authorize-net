@@ -136,7 +136,6 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                     CardExpiration = tokenizedCard.CardExpiration,
                     ProxyEndpointUrl = request.Parameters["ProxyEndpointUrl"],
                     ProxyHttpClientName = request.Parameters["ProxyHttpClientName"],
-                    BearerToken = request.Parameters["BearerToken"],
                 };
             }
 

@@ -8,6 +8,5 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
 
         public string ProxyEndpointUrl { get; set; }
         public string ProxyHttpClientName { get; set; }
-        public string BearerToken { get; set; }
     }
 }

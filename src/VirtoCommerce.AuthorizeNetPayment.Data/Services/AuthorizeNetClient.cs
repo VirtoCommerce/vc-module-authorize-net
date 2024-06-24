@@ -26,6 +26,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
         {
             _httpClientFactory = httpClientFactory;
         }
+
         public AuthorizeNetTokenResult GetPublicClientKey(AuthorizeNetTokenRequest request)
         {
             SetApiMode(request.IsLiveMode);
@@ -313,14 +314,10 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
             content.Headers.ContentType = new MediaTypeHeaderValue(MediaTypeNames.Application.Xml);
             var proxyRequest = new HttpRequestMessage(HttpMethod.Post, new Uri(creditCard.ProxyEndpointUrl))
             {
-                Headers =
-                {
-                    Authorization = new AuthenticationHeaderValue("Bearer", creditCard.BearerToken),
-                },
                 Content = content
             };
 
-            using var proxyHttpClient = _httpClientFactory.CreateClient(creditCard.ProxyHttpClientName);
+            var proxyHttpClient = _httpClientFactory.CreateClient(creditCard.ProxyHttpClientName);
             var response = proxyHttpClient.Send(proxyRequest);
             response.EnsureSuccessStatusCode();
             using var resultStream = response.Content.ReadAsStream();
