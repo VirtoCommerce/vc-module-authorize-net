@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Specialized;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using VirtoCommerce.AuthorizeNetPayment.Core;
 using VirtoCommerce.AuthorizeNetPayment.Core.Models;
 using VirtoCommerce.AuthorizeNetPayment.Core.Services;
@@ -113,7 +114,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             var dataDescriptor = request.Parameters.Get(ModuleConstants.DataDescriptorParamName);
             var dataValue = request.Parameters.Get(ModuleConstants.DataValueParamName);
 
-            if (dataDescriptor == null || dataValue == null)
+            if ((dataDescriptor == null || dataValue == null) && request.Parameters["CreditCard"] == null)
             {
                 return new PostProcessPaymentRequestResult
                 {
@@ -123,6 +124,20 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
 
             var payment = request.GetPayment();
             var order = request.GetOrder();
+
+            AuthorizeNetCreditCard creditCard = null;
+            if (request.Parameters["CreditCard"] != null)
+            {
+                var tokenizedCard = JsonConvert.DeserializeObject<dynamic>(request.Parameters["CreditCard"]);
+                creditCard = new AuthorizeNetCreditCard
+                {
+                    CardCode = tokenizedCard.Cvv,
+                    CardNumber = tokenizedCard.CardNumber,
+                    CardExpiration = tokenizedCard.CardExpiration,
+                    ProxyEndpointUrl = request.Parameters["ProxyEndpointUrl"],
+                    ProxyHttpClientName = request.Parameters["ProxyHttpClientName"],
+                };
+            }
 
             var transactionRequest = new AuthorizeNetCreateTransactionRequest
             {
@@ -136,6 +151,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                 CurrencyCode = payment.Currency,
                 OrderId = order.Id,
                 OrderNumber = order.Number,
+                CreditCard = creditCard,
             };
 
             var transactionResult = _authorizeNetClient.CreateTransaction(transactionRequest);

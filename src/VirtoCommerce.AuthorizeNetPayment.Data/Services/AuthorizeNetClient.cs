@@ -1,6 +1,14 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Mime;
+using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
+using System.Xml.Serialization;
 using AuthorizeNet.Api.Contracts.V1;
 using AuthorizeNet.Api.Controllers;
 using AuthorizeNet.Api.Controllers.Bases;
@@ -13,11 +21,17 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
 {
     public class AuthorizeNetClient : IAuthorizeNetClient
     {
+        private readonly IHttpClientFactory _httpClientFactory;
+        public AuthorizeNetClient(IHttpClientFactory httpClientFactory)
+        {
+            _httpClientFactory = httpClientFactory;
+        }
+
         public AuthorizeNetTokenResult GetPublicClientKey(AuthorizeNetTokenRequest request)
         {
             SetApiMode(request.IsLiveMode);
 
-            var authoriseRequest = new getMerchantDetailsRequest
+            var authorizeRequest = new getMerchantDetailsRequest
             {
                 merchantAuthentication = new merchantAuthenticationType
                 {
@@ -27,7 +41,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 }
             };
 
-            var controller = new getMerchantDetailsController(authoriseRequest);
+            var controller = new getMerchantDetailsController(authorizeRequest);
             controller.Execute();
 
             var response = controller.GetApiResponse();
@@ -58,8 +72,11 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
                 ItemElementName = ItemChoiceType.transactionKey,
             };
 
-            var transactionDetailsRequest = new getTransactionDetailsRequest { merchantAuthentication = merchantAuthentication };
-            transactionDetailsRequest.transId = request.TransactionId;
+            var transactionDetailsRequest = new getTransactionDetailsRequest
+            {
+                merchantAuthentication = merchantAuthentication,
+                transId = request.TransactionId
+            };
 
             // instantiate the controller that will call the service
             var controller = new getTransactionDetailsController(transactionDetailsRequest);
@@ -113,7 +130,15 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
             {
                 Item = opaqueData
             };
-
+            if (request.CreditCard != null)
+            {
+                paymentType.Item = new creditCardType
+                {
+                    cardCode = request.CreditCard.CardCode,
+                    cardNumber = request.CreditCard.CardNumber,
+                    expirationDate = request.CreditCard.CardExpiration
+                };
+            }
             var order = new orderType
             {
                 invoiceNumber = request.OrderId.Substring(20),
@@ -127,11 +152,17 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
             {
                 transactionType = transactionType.ToString(), // charge the card
                 amount = request.Amount,
+                amountSpecified = true,
                 currencyCode = request.CurrencyCode,
                 poNumber = request.OrderNumber,
                 payment = paymentType,
                 order = order,
             };
+
+            if (request.CreditCard != null)
+            {
+                return ProcessTransactionProxyRequest(merchantAuthentication, transactionRequest, request.CreditCard);
+            }
 
             return ProcessTransactionRequest(merchantAuthentication, transactionRequest);
         }
@@ -250,16 +281,60 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Services
 
             var controller = new createTransactionController(request);
             controller.Execute();
-
             var response = controller.GetApiResponse();
             if (response != null)
             {
                 return GetTransactionResponse(response);
             }
-            else
+
+            var errorResponse = controller.GetErrorResponse();
+            return GetResponse(errorResponse);
+        }
+
+        private AuthorizeNetTransactionResult ProcessTransactionProxyRequest(merchantAuthenticationType merchantAuthentication, transactionRequestType transactionRequest, AuthorizeNetCreditCard creditCard)
+        {
+            var createTxRequest = new createTransactionRequest
             {
-                var errorResponse = controller.GetErrorResponse();
-                return GetResponse(errorResponse);
+                merchantAuthentication = merchantAuthentication,
+                transactionRequest = transactionRequest
+            };
+            using var stream = new MemoryStream();
+            using var xmlWriter = XmlWriter.Create(stream, new XmlWriterSettings
+            {
+                Encoding = new UTF8Encoding(false, true), //Exclude BOM
+                Indent = true,
+            });
+
+            var xmlSerializer = new XmlSerializer(typeof(createTransactionRequest));
+            xmlSerializer.Serialize(xmlWriter, createTxRequest);
+
+            stream.Position = 0;
+            using var content = new StreamContent(stream);
+
+            content.Headers.ContentType = new MediaTypeHeaderValue(MediaTypeNames.Application.Xml);
+            var proxyRequest = new HttpRequestMessage(HttpMethod.Post, new Uri(creditCard.ProxyEndpointUrl))
+            {
+                Content = content
+            };
+
+            var proxyHttpClient = _httpClientFactory.CreateClient(creditCard.ProxyHttpClientName);
+            var response = proxyHttpClient.Send(proxyRequest);
+            response.EnsureSuccessStatusCode();
+            using var resultStream = response.Content.ReadAsStream();
+            using var xmlReader = XmlReader.Create(resultStream);
+            try
+            {
+                var responseXmlSerializer = new XmlSerializer(typeof(createTransactionResponse));
+                var txResponse = responseXmlSerializer.Deserialize(xmlReader) as createTransactionResponse;
+                var result = GetTransactionResponse(txResponse);
+                return result;
+            }
+            catch (Exception)
+            {
+                var responseXmlSerializer = new XmlSerializer(typeof(ANetApiResponse));
+                var txResponse = responseXmlSerializer.Deserialize(xmlReader) as ANetApiResponse;
+                var result = GetResponse(txResponse);
+                return result;
             }
         }
 

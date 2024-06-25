@@ -20,6 +20,11 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
         /// </summary>
         public string DataValue { get; set; }
 
+        /// <summary>
+        /// Tokenized credit card data
+        /// </summary>
+        public AuthorizeNetCreditCard CreditCard { get; set; }
+
         public string PaymentActionType { get; set; }
     }
 }
