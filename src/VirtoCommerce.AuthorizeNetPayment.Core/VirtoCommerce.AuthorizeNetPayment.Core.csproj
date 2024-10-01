@@ -7,17 +7,7 @@
     <SonarQubeTestProject>false</SonarQubeTestProject>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="Events\**" />
-    <Compile Remove="Notifications\**" />
-    <EmbeddedResource Remove="Events\**" />
-    <EmbeddedResource Remove="Notifications\**" />
-    <None Remove="Events\**" />
-    <None Remove="Notifications\**" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.800.0" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.853.0" />
   </ItemGroup>
 </Project>

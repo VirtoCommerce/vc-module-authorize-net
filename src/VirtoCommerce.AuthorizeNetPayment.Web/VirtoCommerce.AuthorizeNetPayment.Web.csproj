@@ -11,9 +11,4 @@
     <ProjectReference Include="..\VirtoCommerce.AuthorizeNetPayment.Core\VirtoCommerce.AuthorizeNetPayment.Core.csproj" />
     <ProjectReference Include="..\VirtoCommerce.AuthorizeNetPayment.Data\VirtoCommerce.AuthorizeNetPayment.Data.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <None Update="module.manifest">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
 </Project>
