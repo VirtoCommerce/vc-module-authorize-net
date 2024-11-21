@@ -1,0 +1,34 @@
+{
+  "payment": {
+    "labels": {
+      "AuthorizeNetPaymentMethod": {
+        "name": "Authorize.Net",
+        "description": "Integrazione Authorize.Net con Accept.js"
+      }
+    }
+  },
+  "settings": {
+    "VirtoCommerce.Payment.AuthorizeNetPayment": {
+      "Mode": {
+        "title": "Modalità",
+        "description": "Modalità del gateway di pagamento Authorize.Net (test o reale)"
+      },
+      "PaymentActionType": {
+        "title": "Tipo di azione di pagamento",
+        "description": "Tipo di azione del pagamento"
+      },
+      "ProcessPaymentAction": {
+        "title": "URL per elaborare il pagamento",
+        "description": "Reindirizzamento a questo URL per elaborare il pagamento"
+      },
+      "AcceptJSTestPath": {
+        "title": "Percorso Sandbox AcceptJS",
+        "description": ""
+      },
+      "AcceptJSProdPath": {
+        "title": "Percorso Produzione AcceptJS",
+        "description": ""
+      }
+    }
+  }
+}
