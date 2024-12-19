@@ -18,7 +18,7 @@
         "description": "Action type of payment"
       },
       "ProcessPaymentAction": {
-        "title": "Process Payment action URL",
+        "title": "Process payment action URL",
         "description": "Redirect to this URL to process payment"
       },
       "AcceptJSTestPath": {
