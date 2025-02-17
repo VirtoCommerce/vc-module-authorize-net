@@ -13,7 +13,7 @@ using VirtoCommerce.Platform.Core.Settings;
 
 namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
 {
-    public class AuthorizeNetPaymentMethod : PaymentMethod
+    public class AuthorizeNetPaymentMethod : PaymentMethod, ISupportCaptureFlow, ISupportRefundFlow
     {
         private readonly IAuthorizeNetClient _authorizeNetClient;
         private readonly IAuthorizeNetCheckoutService _authorizeNetCheckoutService;
