@@ -103,8 +103,12 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             };
 
             var payment = request.GetPayment();
-            payment.PaymentStatus = PaymentStatus.Pending;
-            payment.Status = payment.PaymentStatus.ToString();
+
+            if (payment != null)
+            {
+                payment.PaymentStatus = PaymentStatus.Pending;
+                payment.Status = payment.PaymentStatus.ToString();
+            }
 
             return result;
         }
