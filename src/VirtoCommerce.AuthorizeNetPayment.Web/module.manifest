@@ -4,10 +4,10 @@
   <version>3.806.0</version>
   <version-tag />
 
-  <platformVersion>3.916.0-alpha.13164-vcst-4203-cleanup</platformVersion>
+  <platformVersion>3.917.0</platformVersion>
   <dependencies>
-    <dependency id="VirtoCommerce.Orders" version="3.863.0-alpha.1370-vcst-4203-cleanup" />
-    <dependency id="VirtoCommerce.Payment" version="3.811.0-alpha.257-vcst-4203-cleanup" />
+    <dependency id="VirtoCommerce.Orders" version="3.863.0" />
+    <dependency id="VirtoCommerce.Payment" version="3.811.0" />
   </dependencies>
 
   <title>Authorize.Net Payment Method</title>
