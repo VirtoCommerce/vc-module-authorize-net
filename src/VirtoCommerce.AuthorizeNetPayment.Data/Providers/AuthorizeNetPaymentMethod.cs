@@ -242,7 +242,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                     PaymentData = transactionDetails.PaymentData,
                 };
 
-                var refundTransactionResult = _authorizeNetClient.RefundTransaction(transactionRequest);
+                var refundTransactionResult = await _authorizeNetClient.RefundTransactionAsync(transactionRequest);
 
                 if (refundTransactionResult.TransactionResponse == TransactionResponse.Approved)
                 {
