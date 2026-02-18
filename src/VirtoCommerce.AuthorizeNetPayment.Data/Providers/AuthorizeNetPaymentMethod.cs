@@ -66,7 +66,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
         private string ProcessPaymentAction => Settings.GetValue<string>(ModuleConstants.Settings.General.ProcessPaymentAction);
 
 
-        public override Task<ProcessPaymentRequestResult> ProcessPaymentAsync(ProcessPaymentRequest request, CancellationToken cancellationToken = default)
+        public override async Task<ProcessPaymentRequestResult> ProcessPaymentAsync(ProcessPaymentRequest request, CancellationToken cancellationToken = default)
         {
             var tokenRequest = new AuthorizeNetTokenRequest
             {
@@ -75,7 +75,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                 TransactionKey = TransactionKey,
             };
 
-            var clientKeyResult = _authorizeNetClient.GetPublicClientKey(tokenRequest);
+            var clientKeyResult = await _authorizeNetClient.GetPublicClientKeyAsync(tokenRequest);
 
             var userIp = request.Parameters != null ? request.Parameters["True-Client-IP"] : string.Empty;
 
