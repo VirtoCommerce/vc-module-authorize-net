@@ -108,7 +108,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             payment.PaymentStatus = PaymentStatus.Pending;
             payment.Status = payment.PaymentStatus.ToString();
 
-            return Task.FromResult(result);
+            return result;
         }
 
         public override async Task<PostProcessPaymentRequestResult> PostProcessPaymentAsync(PostProcessPaymentRequest request, CancellationToken cancellationToken = default)
