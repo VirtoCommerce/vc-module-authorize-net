@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Specialized;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using VirtoCommerce.AuthorizeNetPayment.Core;
@@ -64,7 +66,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
         private string ProcessPaymentAction => Settings.GetValue<string>(ModuleConstants.Settings.General.ProcessPaymentAction);
 
 
-        public override ProcessPaymentRequestResult ProcessPayment(ProcessPaymentRequest request)
+        public override Task<ProcessPaymentRequestResult> ProcessPaymentAsync(ProcessPaymentRequest request, CancellationToken cancellationToken = default)
         {
             var tokenRequest = new AuthorizeNetTokenRequest
             {
@@ -106,10 +108,10 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             payment.PaymentStatus = PaymentStatus.Pending;
             payment.Status = payment.PaymentStatus.ToString();
 
-            return result;
+            return Task.FromResult(result);
         }
 
-        public override PostProcessPaymentRequestResult PostProcessPayment(PostProcessPaymentRequest request)
+        public override async Task<PostProcessPaymentRequestResult> PostProcessPaymentAsync(PostProcessPaymentRequest request, CancellationToken cancellationToken = default)
         {
             var dataDescriptor = request.Parameters.Get(ModuleConstants.DataDescriptorParamName);
             var dataValue = request.Parameters.Get(ModuleConstants.DataValueParamName);
@@ -154,23 +156,23 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                 CreditCard = creditCard,
             };
 
-            var transactionResult = _authorizeNetClient.CreateTransaction(transactionRequest);
+            var transactionResult = await _authorizeNetClient.CreateTransactionAsync(transactionRequest);
             var result = ProcessCreateTransactionResult(transactionResult, payment, order);
 
             return result;
         }
 
-        public override ValidatePostProcessRequestResult ValidatePostProcessRequest(NameValueCollection queryString)
+        public override Task<ValidatePostProcessRequestResult> ValidatePostProcessRequestAsync(NameValueCollection queryString, CancellationToken cancellationToken = default)
         {
-            return new ValidatePostProcessRequestResult
+            return Task.FromResult(new ValidatePostProcessRequestResult
             {
                 IsSuccess = true,
-            };
+            });
         }
 
-        public override CapturePaymentRequestResult CaptureProcessPayment(CapturePaymentRequest context)
+        public override async Task<CapturePaymentRequestResult> CaptureProcessPaymentAsync(CapturePaymentRequest request, CancellationToken cancellationToken = default)
         {
-            var payment = context.GetPayment();
+            var payment = request.GetPayment();
 
             var transactionRequest = new AuthorizeNetCaptureTransactionRequest
             {
@@ -181,7 +183,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                 TransactionId = payment.OuterId,
             };
 
-            var captureResult = _authorizeNetClient.CaptureTransaction(transactionRequest);
+            var captureResult = await _authorizeNetClient.CaptureTransactionAsync(transactionRequest);
 
             var result = new CapturePaymentRequestResult();
 
@@ -201,9 +203,9 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             return result;
         }
 
-        public override RefundPaymentRequestResult RefundProcessPayment(RefundPaymentRequest context)
+        public override async Task<RefundPaymentRequestResult> RefundProcessPaymentAsync(RefundPaymentRequest request, CancellationToken cancellationToken = default)
         {
-            var payment = context.GetPayment();
+            var payment = request.GetPayment();
 
             if (payment.IsApproved && payment.PaymentStatus != PaymentStatus.Paid)
             {
@@ -223,7 +225,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                 TransactionId = payment.OuterId,
             };
 
-            var transactionDetails = _authorizeNetClient.GetTransactionDetails(transactionDetailsRequest);
+            var transactionDetails = await _authorizeNetClient.GetTransactionDetailsAsync(transactionDetailsRequest);
 
             // test on null or invalid transaction id
             var result = new RefundPaymentRequestResult();
@@ -255,7 +257,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             }
             else
             {
-                var order = context.GetOrder();
+                var order = request.GetOrder();
                 var voidRequest = new VoidPaymentRequest
                 {
                     PaymentId = payment.Id,
@@ -264,7 +266,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                     Order = order,
                 };
 
-                var voidReult = VoidProcessPayment(voidRequest);
+                var voidReult = await VoidProcessPaymentAsync(voidRequest);
 
                 result.IsSuccess = voidReult.IsSuccess;
                 result.NewPaymentStatus = voidReult.NewPaymentStatus;
@@ -274,7 +276,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
             return result;
         }
 
-        public override VoidPaymentRequestResult VoidProcessPayment(VoidPaymentRequest request)
+        public override async Task<VoidPaymentRequestResult> VoidProcessPaymentAsync(VoidPaymentRequest request, CancellationToken cancellationToken = default)
         {
             var payment = request.GetPayment();
 
@@ -291,7 +293,7 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                 TransactionId = payment.OuterId,
             };
 
-            var voidTransactionResult = _authorizeNetClient.VoidTransaction(transactionRequest);
+            var voidTransactionResult = await _authorizeNetClient.VoidTransactionAsync(transactionRequest);
 
             var result = new VoidPaymentRequestResult();
 

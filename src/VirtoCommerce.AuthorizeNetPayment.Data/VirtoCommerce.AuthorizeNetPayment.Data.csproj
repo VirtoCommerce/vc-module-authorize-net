@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <PropertyGroup>
     <!-- Project is not a test project -->
@@ -18,10 +18,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="DotLiquid" Version="2.2.692" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-    <PackageReference Include="VirtoCommerce.OrdersModule.Core" Version="3.863.0" />
-    <PackageReference Include="VirtoCommerce.PaymentModule.Core" Version="3.811.0" />
+    <PackageReference Include="DotLiquid" Version="2.3.197" />
+    
+    <PackageReference Include="VirtoCommerce.OrdersModule.Core" Version="3.1000.0" />
+    <PackageReference Include="VirtoCommerce.PaymentModule.Core" Version="3.1000.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VirtoCommerce.AuthorizeNetPayment.Core\VirtoCommerce.AuthorizeNetPayment.Core.csproj" />
