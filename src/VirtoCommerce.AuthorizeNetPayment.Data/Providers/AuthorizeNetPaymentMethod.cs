@@ -270,11 +270,11 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                     Order = order,
                 };
 
-                var voidReult = await VoidProcessPaymentAsync(voidRequest, cancellationToken);
+                var voidResult = await VoidProcessPaymentAsync(voidRequest, cancellationToken);
 
-                result.IsSuccess = voidReult.IsSuccess;
-                result.NewPaymentStatus = voidReult.NewPaymentStatus;
-                result.ErrorMessage = voidReult.ErrorMessage;
+                result.IsSuccess = voidResult.IsSuccess;
+                result.NewPaymentStatus = voidResult.NewPaymentStatus;
+                result.ErrorMessage = voidResult.ErrorMessage;
             }
 
             return result;
