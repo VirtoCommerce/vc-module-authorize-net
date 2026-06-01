@@ -36,6 +36,8 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
 
         public override PaymentMethodType PaymentMethodType => PaymentMethodType.PreparedForm;
 
+        public override bool AllowCartPayment => true;
+
         private string ApiLogin => _options.ApiLogin;
 
         private string TransactionKey => _options.TxnKey;
@@ -104,9 +106,11 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                 }
             };
 
-            var payment = request.GetPayment();
-            payment.PaymentStatus = PaymentStatus.Pending;
-            payment.Status = payment.PaymentStatus.ToString();
+            if (request.GetPayment() is { } payment)
+            {
+                payment.PaymentStatus = PaymentStatus.Pending;
+                payment.Status = payment.PaymentStatus.ToString();
+            }
 
             return result;
         }
