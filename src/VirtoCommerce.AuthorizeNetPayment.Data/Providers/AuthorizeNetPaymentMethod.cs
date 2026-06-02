@@ -348,9 +348,12 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                     ProcessedDate = DateTime.UtcNow,
                     CurrencyCode = payment.Currency,
                     Amount = payment.Sum,
-                    Note = $"Transaction ID: {transactionResult.TransactionId}",
-                    Status = transactionMessage.Description,
-                    ResponseCode = transactionMessage.Code,
+                    // Status (64) and ResponseCode (64) are short columns. The gateway can return
+                    // several combined messages/warnings even on approval, so keep concise values
+                    // here and put the full text in Note (2048).
+                    Note = $"Transaction ID: {transactionResult.TransactionId}. {transactionMessage.Description}".Trim(),
+                    Status = transactionResult.TransactionResponse.ToString(),
+                    ResponseCode = transactionResult.TransactionResponseCode,
                     ResponseData = $"Account number {transactionResult.AccountNumber}",
                 };
 
