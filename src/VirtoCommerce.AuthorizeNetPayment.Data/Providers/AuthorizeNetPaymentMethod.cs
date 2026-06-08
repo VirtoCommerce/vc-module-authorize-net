@@ -36,6 +36,8 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
 
         public override PaymentMethodType PaymentMethodType => PaymentMethodType.PreparedForm;
 
+        public override bool AllowCartPayment => true;
+
         private string ApiLogin => _options.ApiLogin;
 
         private string TransactionKey => _options.TxnKey;
@@ -104,9 +106,11 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                 }
             };
 
-            var payment = request.GetPayment();
-            payment.PaymentStatus = PaymentStatus.Pending;
-            payment.Status = payment.PaymentStatus.ToString();
+            if (request.GetPayment() is { } payment)
+            {
+                payment.PaymentStatus = PaymentStatus.Pending;
+                payment.Status = payment.PaymentStatus.ToString();
+            }
 
             return result;
         }
@@ -266,11 +270,11 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                     Order = order,
                 };
 
-                var voidReult = await VoidProcessPaymentAsync(voidRequest, cancellationToken);
+                var voidResult = await VoidProcessPaymentAsync(voidRequest, cancellationToken);
 
-                result.IsSuccess = voidReult.IsSuccess;
-                result.NewPaymentStatus = voidReult.NewPaymentStatus;
-                result.ErrorMessage = voidReult.ErrorMessage;
+                result.IsSuccess = voidResult.IsSuccess;
+                result.NewPaymentStatus = voidResult.NewPaymentStatus;
+                result.ErrorMessage = voidResult.ErrorMessage;
             }
 
             return result;
@@ -344,9 +348,12 @@ namespace VirtoCommerce.AuthorizeNetPayment.Data.Providers
                     ProcessedDate = DateTime.UtcNow,
                     CurrencyCode = payment.Currency,
                     Amount = payment.Sum,
-                    Note = $"Transaction ID: {transactionResult.TransactionId}",
-                    Status = transactionMessage.Description,
-                    ResponseCode = transactionMessage.Code,
+                    // Status (64) and ResponseCode (64) are short columns. The gateway can return
+                    // several combined messages/warnings even on approval, so keep concise values
+                    // here and put the full text in Note (2048).
+                    Note = $"Transaction ID: {transactionResult.TransactionId}. {transactionMessage.Description}".Trim(),
+                    Status = transactionResult.TransactionResponse.ToString(),
+                    ResponseCode = transactionResult.TransactionResponseCode,
                     ResponseData = $"Account number {transactionResult.AccountNumber}",
                 };
 
