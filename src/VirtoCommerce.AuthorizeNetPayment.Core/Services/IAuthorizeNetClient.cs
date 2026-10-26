@@ -49,5 +49,30 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Services
         AuthorizeNetTransactionResult VoidTransaction(AuthorizeNetVoidTransactionRequest request);
 
         Task<AuthorizeNetTransactionResult> VoidTransactionAsync(AuthorizeNetVoidTransactionRequest request);
+
+        /// <summary>
+        /// Finds the customer profile with this merchant customer ID; null when there is none.
+        /// </summary>
+        Task<string> FindCustomerProfileIdAsync(AuthorizeNetCustomerLookupRequest request);
+
+        /// <summary>
+        /// Saves a card from an Accept.js nonce in the Customer Information Manager, optionally validated with an authorization.
+        /// </summary>
+        Task<AuthorizeNetCustomerProfileResult> CreateCustomerProfileAsync(AuthorizeNetCustomerProfileRequest request);
+
+        /// <summary>
+        /// Saves the card of an approved transaction in the Customer Information Manager.
+        /// </summary>
+        Task<AuthorizeNetCustomerProfileResult> CreateCustomerProfileFromTransactionAsync(AuthorizeNetProfileFromTransactionRequest request);
+
+        /// <summary>
+        /// Gets a stored card with its unmasked expiry date.
+        /// </summary>
+        Task<AuthorizeNetPaymentProfileResult> GetCustomerPaymentProfileAsync(AuthorizeNetPaymentProfileRequest request);
+
+        /// <summary>
+        /// Deletes a stored card. A card that no longer exists counts as deleted.
+        /// </summary>
+        Task<AuthorizeNetBaseResult> DeleteCustomerPaymentProfileAsync(AuthorizeNetPaymentProfileRequest request);
     }
 }

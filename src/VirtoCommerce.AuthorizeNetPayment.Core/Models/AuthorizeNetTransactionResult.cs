@@ -72,5 +72,34 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core.Models
         public string PaymentData { get; set; }
 
         public string AccountNumber { get; set; }
+
+        /// <summary>The card brand, e.g. <c>Visa</c>.</summary>
+        public string AccountType { get; set; }
+
+        public string AuthCode { get; set; }
+
+        /// <summary>The card network's transaction ID, sent with later merchant-initiated charges of a stored card.</summary>
+        public string NetworkTransactionId { get; set; }
+
+        public string AvsResultCode { get; set; }
+
+        public string CvvResultCode { get; set; }
+
+        /// <summary>The network transaction ID a merchant-initiated charge referenced, from transaction details.</summary>
+        public string OriginalNetworkTransactionId { get; set; }
+
+        /// <summary>The authorized amount, from transaction details.</summary>
+        public decimal? AuthAmount { get; set; }
+
+        /// <summary>The response reason code, from transaction details.</summary>
+        public string ResponseReasonCode { get; set; }
+
+        /// <summary>
+        /// The first transaction error code (for example <c>11</c> for a duplicate), or the first API error code
+        /// (for example <c>E00040</c>) when the request was rejected before a transaction was created.
+        /// </summary>
+        public string ReasonCode => TransactionErrors.FirstOrDefault()?.Code ?? Errors.FirstOrDefault()?.Code;
+
+        public bool IsDuplicate => TransactionErrors.Any(x => x.Code == "11");
     }
 }
