@@ -7,8 +7,18 @@
     <!-- Project is a test project -->
     <SonarQubeTestProject>true</SonarQubeTestProject>
   </PropertyGroup>
+  <PropertyGroup>
+    <!--
+      The stored credential contract tests come from the connector test kit in a sibling checkout of
+      vc-module-product-subscription. Without it, they are left out and the unit tests still build and run.
+    -->
+    <ConnectorTestKitProject>$(MSBuildThisFileDirectory)..\..\..\vc-module-product-subscription\tests\VirtoCommerce.ProductSubscription.ConnectorTestKit\VirtoCommerce.ProductSubscription.ConnectorTestKit.csproj</ConnectorTestKitProject>
+    <HasConnectorTestKit Condition="Exists('$(ConnectorTestKitProject)')">true</HasConnectorTestKit>
+  </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="7.2.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageReference Include="Moq" Version="4.21.0" />
     <PackageReference Include="xunit.v3" Version="3.2.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
     <PackageReference Include="coverlet.collector" Version="10.1.0">
@@ -20,5 +30,11 @@
     <ProjectReference Include="..\..\src\VirtoCommerce.AuthorizeNetPayment.Core\VirtoCommerce.AuthorizeNetPayment.Core.csproj" />
     <ProjectReference Include="..\..\src\VirtoCommerce.AuthorizeNetPayment.Data\VirtoCommerce.AuthorizeNetPayment.Data.csproj" />
     <ProjectReference Include="..\..\src\VirtoCommerce.AuthorizeNetPayment.Web\VirtoCommerce.AuthorizeNetPayment.Web.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(HasConnectorTestKit)' == 'true'">
+    <ProjectReference Include="$(ConnectorTestKitProject)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(HasConnectorTestKit)' != 'true'">
+    <Compile Remove="Sandbox\AuthorizeNetConnectorContractTests.cs" />
   </ItemGroup>
 </Project>
