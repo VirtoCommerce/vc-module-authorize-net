@@ -14,6 +14,23 @@ namespace VirtoCommerce.AuthorizeNetPayment.Core
         public const string DataDescriptorParamName = "dataDescriptor";
         public const string DataValueParamName = "dataValue";
 
+        /// <summary>The card's billing address, posted with a card saved from the customer's account.</summary>
+        public const string BillingFirstNameParamName = "billingFirstName";
+        public const string BillingLastNameParamName = "billingLastName";
+        public const string BillingAddressParamName = "billingAddress";
+        public const string BillingCityParamName = "billingCity";
+        public const string BillingStateParamName = "billingState";
+        public const string BillingZipParamName = "billingZip";
+        public const string BillingCountryParamName = "billingCountry";
+
+        /// <summary>
+        /// How long the gateway answers a repeated stored-card charge with the original transaction: the maximum, eight hours.
+        /// </summary>
+        public const int StoredPaymentDuplicateWindowSeconds = 28800;
+
+        /// <summary>Authorize.Net limits merchant customer IDs and invoice numbers to 20 characters.</summary>
+        public const int MaxReferenceLength = 20;
+
         public static class Settings
         {
             public static class General

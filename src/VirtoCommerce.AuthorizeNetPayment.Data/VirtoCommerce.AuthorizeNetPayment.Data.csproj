@@ -21,7 +21,7 @@
     <PackageReference Include="DotLiquid" Version="2.3.197" />
     
     <PackageReference Include="VirtoCommerce.OrdersModule.Core" Version="3.1018.0" />
-    <PackageReference Include="VirtoCommerce.PaymentModule.Core" Version="3.1010.0" />
+    <PackageReference Include="VirtoCommerce.PaymentModule.Core" Version="3.1011.0-alpha.325-vcst-6507" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VirtoCommerce.AuthorizeNetPayment.Core\VirtoCommerce.AuthorizeNetPayment.Core.csproj" />
